@@ -179,17 +179,25 @@ function StepUpload({ file, setFile, setConfig }: { file: UploadedFile | null; s
   const inputRef = useRef<HTMLInputElement>(null);
   const [dragOver, setDragOver] = useState(false);
 
-  function handleFiles(files: FileList | null) {
+  async function handleFiles(files: FileList | null) {
     const f = files?.[0]; if (!f) return;
     const allowed = ["application/pdf", "image/png", "image/jpeg", "image/webp", "application/vnd.openxmlformats-officedocument.wordprocessingml.document", "application/msword"];
     if (!allowed.includes(f.type) && !f.name.match(/\.(pdf|docx?|png|jpe?g|webp)$/i)) { toast.error("Unsupported file type"); return; }
     if (f.size > 50 * 1024 * 1024) { toast.error("Max 50MB"); return; }
     const previewUrl = f.type.startsWith("image/") || f.type === "application/pdf" ? URL.createObjectURL(f) : undefined;
-    // rough page estimate: PDFs ~1 page per 50KB, docs ~1 per 30KB, images = 1 page
-    const est = f.type.startsWith("image/") ? 1 : Math.max(1, Math.round(f.size / (f.type === "application/pdf" ? 50000 : 30000)));
-    setFile({ name: f.name, size: f.size, type: f.type, previewUrl, estimatedPages: est });
-    setConfig((c) => ({ ...c, pages: est }));
-    toast.success(`Uploaded — estimated ${est} page${est > 1 ? "s" : ""}`);
+
+    // Show file immediately with detecting state
+    setFile({ name: f.name, size: f.size, type: f.type, previewUrl, pages: null, detecting: true });
+
+    const result = await countPages(f);
+    if (result.ok) {
+      setFile({ name: f.name, size: f.size, type: f.type, previewUrl, pages: result.pages, detecting: false, countMethod: result.method });
+      setConfig((c) => ({ ...c, pages: result.pages }));
+      toast.success(`Detected ${result.pages} page${result.pages > 1 ? "s" : ""}`);
+    } else {
+      setFile({ name: f.name, size: f.size, type: f.type, previewUrl, pages: null, detecting: false, countError: result.reason });
+      toast.error(result.reason);
+    }
   }
 
   return (
