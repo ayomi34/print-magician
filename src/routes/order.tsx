@@ -87,7 +87,11 @@ function OrderPage() {
   const breakdown = useMemo(() => calculatePrice(config), [config]);
 
   function next() {
-    if (step === 0 && !file) { toast.error("Please upload a file first"); return; }
+    if (step === 0) {
+      if (!file) { toast.error("Please upload a file first"); return; }
+      if (file.detecting) { toast.error("Still detecting page count…"); return; }
+      if (!file.pages) { toast.error(file.countError || "Could not detect page count"); return; }
+    }
     if (step === 3) { return submitOrder(); }
     setStep((s) => Math.min(s + 1, STEPS.length - 1));
   }
@@ -95,7 +99,7 @@ function OrderPage() {
 
   function submitOrder() {
     if (!customer.name || !customer.phone) { toast.error("Name and phone are required"); return; }
-    if (config.delivery === "delivery" && !customer.address) { toast.error("Please add a delivery address"); return; }
+    if (config.delivery === "delivery" && !config.zone) { toast.error("Please pick a delivery zone in Ibadan"); return; }
     setSubmitting(true);
     setTimeout(() => {
       const orderId = "PF-" + Math.random().toString(36).slice(2, 8).toUpperCase();
