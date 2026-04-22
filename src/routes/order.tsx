@@ -14,15 +14,18 @@ import { SupportFab } from "@/components/SupportFab";
 import {
   calculatePrice,
   formatNaira,
+  IBADAN_ZONES,
   type Binding,
   type ColorMode,
   type Cover,
   type Delivery,
+  type IbadanZone,
   type PaperSize,
   type PaperType,
   type PrintConfig,
   type SideMode,
 } from "@/lib/pricing";
+import { countPages } from "@/lib/countPages";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/order")({
