@@ -231,8 +231,16 @@ function StepUpload({ file, setFile, setConfig }: { file: UploadedFile | null; s
           </div>
           <div className="min-w-0 flex-1">
             <div className="font-medium truncate">{file.name}</div>
-            <div className="text-xs text-muted-foreground mt-1">
-              {(file.size / 1024 / 1024).toFixed(2)} MB · ~{file.estimatedPages} pages
+            <div className="text-xs text-muted-foreground mt-1 flex items-center gap-2">
+              <span>{(file.size / 1024 / 1024).toFixed(2)} MB</span>
+              <span>·</span>
+              {file.detecting ? (
+                <span className="inline-flex items-center gap-1 text-primary"><Loader2 className="h-3 w-3 animate-spin" /> Detecting pages…</span>
+              ) : file.pages ? (
+                <span><strong className="text-foreground">{file.pages}</strong> page{file.pages > 1 ? "s" : ""} detected{file.countMethod === "pdf" ? " (exact)" : ""}</span>
+              ) : (
+                <span className="text-destructive">{file.countError}</span>
+              )}
             </div>
           </div>
           <Button variant="ghost" size="icon" onClick={() => setFile(null)} aria-label="Remove file">
