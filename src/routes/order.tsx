@@ -26,6 +26,7 @@ import {
   type SideMode,
 } from "@/lib/pricing";
 import { countPages } from "@/lib/countPages";
+import { addOrder, generateOrderId } from "@/lib/orders";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/order")({
@@ -102,7 +103,17 @@ function OrderPage() {
     if (config.delivery === "delivery" && !config.zone) { toast.error("Please pick a delivery zone in Ibadan"); return; }
     setSubmitting(true);
     setTimeout(() => {
-      const orderId = "PF-" + Math.random().toString(36).slice(2, 8).toUpperCase();
+      const orderId = generateOrderId();
+      addOrder({
+        id: orderId,
+        createdAt: Date.now(),
+        status: "pending",
+        customer,
+        config,
+        fileName: file?.name ?? "—",
+        fileSize: file?.size ?? 0,
+        total: breakdown.total,
+      });
       toast.success("Order placed! ID: " + orderId);
       setSubmitting(false);
     }, 1200);
