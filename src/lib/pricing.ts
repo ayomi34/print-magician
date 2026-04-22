@@ -7,6 +7,34 @@ export type PaperType = "plain" | "glossy" | "matte" | "cardstock";
 export type Binding = "none" | "stapled" | "spiral" | "hardcover";
 export type Cover = "none" | "transparent" | "card" | "custom";
 export type Delivery = "pickup" | "delivery";
+export type IbadanZone =
+  | "bodija"
+  | "ui_agbowo"
+  | "ringroad"
+  | "challenge"
+  | "dugbe"
+  | "mokola"
+  | "iwo_road"
+  | "akobo"
+  | "apata"
+  | "ojoo"
+  | "moniya"
+  | "egbeda";
+
+export const IBADAN_ZONES: { value: IbadanZone; label: string; fee: number; eta: string }[] = [
+  { value: "dugbe",     label: "Dugbe / Adamasingba",       fee: 1200, eta: "Same day" },
+  { value: "mokola",    label: "Mokola / Sango",            fee: 1200, eta: "Same day" },
+  { value: "bodija",    label: "Bodija / Agbowo",           fee: 1500, eta: "Same day" },
+  { value: "ui_agbowo", label: "UI / Ajibode",              fee: 1500, eta: "Same day" },
+  { value: "ringroad",  label: "Ring Road / Molete",        fee: 1800, eta: "1 day" },
+  { value: "challenge", label: "Challenge / Felele",        fee: 1800, eta: "1 day" },
+  { value: "iwo_road",  label: "Iwo Road / New Garage",     fee: 2000, eta: "1 day" },
+  { value: "akobo",     label: "Akobo / Basorun",           fee: 2000, eta: "1 day" },
+  { value: "apata",     label: "Apata / Odo Ona",           fee: 2200, eta: "1–2 days" },
+  { value: "egbeda",    label: "Egbeda / Olodo",            fee: 2200, eta: "1–2 days" },
+  { value: "ojoo",      label: "Ojoo / Sasa",               fee: 2500, eta: "1–2 days" },
+  { value: "moniya",    label: "Moniya / Akinyele",         fee: 2800, eta: "1–2 days" },
+];
 
 export interface PrintConfig {
   pages: number;
