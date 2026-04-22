@@ -90,7 +90,10 @@ const COVER_FLAT: Record<Cover, number> = {
   custom: 1000,
 };
 
-const DELIVERY_FEE = 1500;
+export function getZoneFee(zone?: IbadanZone): number {
+  if (!zone) return 0;
+  return IBADAN_ZONES.find((z) => z.value === zone)?.fee ?? 0;
+}
 
 export interface PriceBreakdown {
   perPage: number;
