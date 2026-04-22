@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as TrackRouteImport } from './routes/track'
 import { Route as SupportRouteImport } from './routes/support'
 import { Route as OrderRouteImport } from './routes/order'
+import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
 
 const TrackRoute = TrackRouteImport.update({
@@ -29,6 +30,11 @@ const OrderRoute = OrderRouteImport.update({
   path: '/order',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminRoute = AdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -37,12 +43,14 @@ const IndexRoute = IndexRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/admin': typeof AdminRoute
   '/order': typeof OrderRoute
   '/support': typeof SupportRoute
   '/track': typeof TrackRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/admin': typeof AdminRoute
   '/order': typeof OrderRoute
   '/support': typeof SupportRoute
   '/track': typeof TrackRoute
@@ -50,20 +58,22 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/admin': typeof AdminRoute
   '/order': typeof OrderRoute
   '/support': typeof SupportRoute
   '/track': typeof TrackRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/order' | '/support' | '/track'
+  fullPaths: '/' | '/admin' | '/order' | '/support' | '/track'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/order' | '/support' | '/track'
-  id: '__root__' | '/' | '/order' | '/support' | '/track'
+  to: '/' | '/admin' | '/order' | '/support' | '/track'
+  id: '__root__' | '/' | '/admin' | '/order' | '/support' | '/track'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AdminRoute: typeof AdminRoute
   OrderRoute: typeof OrderRoute
   SupportRoute: typeof SupportRoute
   TrackRoute: typeof TrackRoute
@@ -92,6 +102,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OrderRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin': {
+      id: '/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AdminRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -104,6 +121,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AdminRoute: AdminRoute,
   OrderRoute: OrderRoute,
   SupportRoute: SupportRoute,
   TrackRoute: TrackRoute,
