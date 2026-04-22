@@ -402,8 +402,9 @@ function StepReview({ file, config }: { file: UploadedFile | null; config: Print
   );
 }
 
-function StepCheckout({ customer, setCustomer, delivery, setDelivery }: { customer: CustomerInfo; setCustomer: React.Dispatch<React.SetStateAction<CustomerInfo>>; delivery: Delivery; setDelivery: (d: Delivery) => void; }) {
+function StepCheckout({ customer, setCustomer, delivery, setDelivery, zone, setZone }: { customer: CustomerInfo; setCustomer: React.Dispatch<React.SetStateAction<CustomerInfo>>; delivery: Delivery; setDelivery: (d: Delivery) => void; zone: IbadanZone | undefined; setZone: (z: IbadanZone) => void; }) {
   function up<K extends keyof CustomerInfo>(k: K, v: CustomerInfo[K]) { setCustomer((c) => ({ ...c, [k]: v })); }
+  const selectedZone = IBADAN_ZONES.find((z) => z.value === zone);
   return (
     <div className="space-y-6">
       <div>
@@ -418,19 +419,33 @@ function StepCheckout({ customer, setCustomer, delivery, setDelivery }: { custom
 
       <ChoiceGroup label="Fulfillment" value={delivery} onChange={(v) => setDelivery(v as Delivery)} options={[
         { value: "pickup", label: "Store pickup", hint: "Free · Ready in 2–4h" },
-        { value: "delivery", label: "Home delivery", hint: "+₦1,500 · 1–2 days" },
+        { value: "delivery", label: "Delivery (Ibadan only)", hint: "Fee depends on zone" },
       ]} />
 
       {delivery === "delivery" && (
         <div className="space-y-2">
-          <Label>Delivery address *</Label>
-          <Textarea value={customer.address} onChange={(e) => up("address", e.target.value)} placeholder="Street, area, city, state" rows={3} />
+          <Label>Delivery zone (within Ibadan) *</Label>
+          <Select value={zone ?? ""} onValueChange={(v) => setZone(v as IbadanZone)}>
+            <SelectTrigger><SelectValue placeholder="Select your area in Ibadan" /></SelectTrigger>
+            <SelectContent>
+              {IBADAN_ZONES.map((z) => (
+                <SelectItem key={z.value} value={z.value}>
+                  {z.label} — {formatNaira(z.fee)} · {z.eta}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {selectedZone ? (
+            <p className="text-xs text-muted-foreground">Fee: <span className="font-medium text-foreground">{formatNaira(selectedZone.fee)}</span> · ETA: {selectedZone.eta}</p>
+          ) : (
+            <p className="text-xs text-muted-foreground">We currently deliver only within Ibadan.</p>
+          )}
         </div>
       )}
 
       <div className="space-y-2">
         <Label>Notes (optional)</Label>
-        <Textarea value={customer.notes} onChange={(e) => up("notes", e.target.value)} placeholder="Any special instructions?" rows={2} />
+        <Textarea value={customer.notes} onChange={(e) => up("notes", e.target.value)} placeholder="Landmark, gate code, special instructions?" rows={2} />
       </div>
 
       <div className="rounded-xl border border-border bg-secondary/40 p-4 text-xs text-muted-foreground">
