@@ -120,7 +120,7 @@ function OrderPage() {
               {step === 0 && <StepUpload file={file} setFile={setFile} setConfig={setConfig} />}
               {step === 1 && <StepConfigure config={config} setConfig={setConfig} />}
               {step === 2 && <StepReview file={file} config={config} />}
-              {step === 3 && <StepCheckout customer={customer} setCustomer={setCustomer} delivery={config.delivery} setDelivery={(d) => setConfig((c) => ({ ...c, delivery: d }))} />}
+              {step === 3 && <StepCheckout customer={customer} setCustomer={setCustomer} delivery={config.delivery} setDelivery={(d) => setConfig((c) => ({ ...c, delivery: d, zone: d === "delivery" ? c.zone : undefined }))} zone={config.zone} setZone={(z) => setConfig((c) => ({ ...c, zone: z }))} />}
 
               <div className="mt-8 flex items-center justify-between">
                 <Button variant="ghost" onClick={prev} disabled={step === 0}>
