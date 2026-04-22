@@ -35,6 +35,12 @@ export const Route = createRootRoute({
       { name: "author", content: "PrintFlow" },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
+      { property: "og:title", content: "PrintFlow — Web-to-Print Platform" },
+      { name: "twitter:title", content: "PrintFlow — Web-to-Print Platform" },
+      { property: "og:description", content: "Upload, configure and order professional prints in minutes. Pay with Paystack." },
+      { name: "twitter:description", content: "Upload, configure and order professional prints in minutes. Pay with Paystack." },
+      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/36193b5b-ffc1-493a-b133-f19461749296/id-preview-03542002--728d5d77-1614-46e3-9000-986dfc9c837f.lovable.app-1776881261065.png" },
+      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/36193b5b-ffc1-493a-b133-f19461749296/id-preview-03542002--728d5d77-1614-46e3-9000-986dfc9c837f.lovable.app-1776881261065.png" },
     ],
     links: [
       {
