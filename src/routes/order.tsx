@@ -47,14 +47,16 @@ interface UploadedFile {
   size: number;
   type: string;
   previewUrl?: string;
-  estimatedPages: number;
+  pages: number | null; // null while detecting
+  detecting: boolean;
+  countMethod?: "pdf" | "image";
+  countError?: string;
 }
 
 interface CustomerInfo {
   name: string;
   phone: string;
   email: string;
-  address: string;
   notes: string;
 }
 
