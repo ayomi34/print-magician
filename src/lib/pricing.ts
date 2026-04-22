@@ -46,6 +46,7 @@ export interface PrintConfig {
   binding: Binding;
   cover: Cover;
   delivery: Delivery;
+  zone?: IbadanZone;
 }
 
 // Per-page base for B&W plain A4
