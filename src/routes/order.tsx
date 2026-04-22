@@ -14,15 +14,18 @@ import { SupportFab } from "@/components/SupportFab";
 import {
   calculatePrice,
   formatNaira,
+  IBADAN_ZONES,
   type Binding,
   type ColorMode,
   type Cover,
   type Delivery,
+  type IbadanZone,
   type PaperSize,
   type PaperType,
   type PrintConfig,
   type SideMode,
 } from "@/lib/pricing";
+import { countPages } from "@/lib/countPages";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/order")({
@@ -44,14 +47,16 @@ interface UploadedFile {
   size: number;
   type: string;
   previewUrl?: string;
-  estimatedPages: number;
+  pages: number | null; // null while detecting
+  detecting: boolean;
+  countMethod?: "pdf" | "image";
+  countError?: string;
 }
 
 interface CustomerInfo {
   name: string;
   phone: string;
   email: string;
-  address: string;
   notes: string;
 }
 
@@ -76,14 +81,17 @@ function OrderPage() {
     name: "",
     phone: "",
     email: "",
-    address: "",
     notes: "",
   });
 
   const breakdown = useMemo(() => calculatePrice(config), [config]);
 
   function next() {
-    if (step === 0 && !file) { toast.error("Please upload a file first"); return; }
+    if (step === 0) {
+      if (!file) { toast.error("Please upload a file first"); return; }
+      if (file.detecting) { toast.error("Still detecting page count…"); return; }
+      if (!file.pages) { toast.error(file.countError || "Could not detect page count"); return; }
+    }
     if (step === 3) { return submitOrder(); }
     setStep((s) => Math.min(s + 1, STEPS.length - 1));
   }
@@ -91,7 +99,7 @@ function OrderPage() {
 
   function submitOrder() {
     if (!customer.name || !customer.phone) { toast.error("Name and phone are required"); return; }
-    if (config.delivery === "delivery" && !customer.address) { toast.error("Please add a delivery address"); return; }
+    if (config.delivery === "delivery" && !config.zone) { toast.error("Please pick a delivery zone in Ibadan"); return; }
     setSubmitting(true);
     setTimeout(() => {
       const orderId = "PF-" + Math.random().toString(36).slice(2, 8).toUpperCase();
@@ -112,7 +120,7 @@ function OrderPage() {
               {step === 0 && <StepUpload file={file} setFile={setFile} setConfig={setConfig} />}
               {step === 1 && <StepConfigure config={config} setConfig={setConfig} />}
               {step === 2 && <StepReview file={file} config={config} />}
-              {step === 3 && <StepCheckout customer={customer} setCustomer={setCustomer} delivery={config.delivery} setDelivery={(d) => setConfig((c) => ({ ...c, delivery: d }))} />}
+              {step === 3 && <StepCheckout customer={customer} setCustomer={setCustomer} delivery={config.delivery} setDelivery={(d) => setConfig((c) => ({ ...c, delivery: d, zone: d === "delivery" ? c.zone : undefined }))} zone={config.zone} setZone={(z) => setConfig((c) => ({ ...c, zone: z }))} />}
 
               <div className="mt-8 flex items-center justify-between">
                 <Button variant="ghost" onClick={prev} disabled={step === 0}>
@@ -171,17 +179,25 @@ function StepUpload({ file, setFile, setConfig }: { file: UploadedFile | null; s
   const inputRef = useRef<HTMLInputElement>(null);
   const [dragOver, setDragOver] = useState(false);
 
-  function handleFiles(files: FileList | null) {
+  async function handleFiles(files: FileList | null) {
     const f = files?.[0]; if (!f) return;
     const allowed = ["application/pdf", "image/png", "image/jpeg", "image/webp", "application/vnd.openxmlformats-officedocument.wordprocessingml.document", "application/msword"];
     if (!allowed.includes(f.type) && !f.name.match(/\.(pdf|docx?|png|jpe?g|webp)$/i)) { toast.error("Unsupported file type"); return; }
     if (f.size > 50 * 1024 * 1024) { toast.error("Max 50MB"); return; }
     const previewUrl = f.type.startsWith("image/") || f.type === "application/pdf" ? URL.createObjectURL(f) : undefined;
-    // rough page estimate: PDFs ~1 page per 50KB, docs ~1 per 30KB, images = 1 page
-    const est = f.type.startsWith("image/") ? 1 : Math.max(1, Math.round(f.size / (f.type === "application/pdf" ? 50000 : 30000)));
-    setFile({ name: f.name, size: f.size, type: f.type, previewUrl, estimatedPages: est });
-    setConfig((c) => ({ ...c, pages: est }));
-    toast.success(`Uploaded — estimated ${est} page${est > 1 ? "s" : ""}`);
+
+    // Show file immediately with detecting state
+    setFile({ name: f.name, size: f.size, type: f.type, previewUrl, pages: null, detecting: true });
+
+    const result = await countPages(f);
+    if (result.ok) {
+      setFile({ name: f.name, size: f.size, type: f.type, previewUrl, pages: result.pages, detecting: false, countMethod: result.method });
+      setConfig((c) => ({ ...c, pages: result.pages }));
+      toast.success(`Detected ${result.pages} page${result.pages > 1 ? "s" : ""}`);
+    } else {
+      setFile({ name: f.name, size: f.size, type: f.type, previewUrl, pages: null, detecting: false, countError: result.reason });
+      toast.error(result.reason);
+    }
   }
 
   return (
@@ -215,8 +231,16 @@ function StepUpload({ file, setFile, setConfig }: { file: UploadedFile | null; s
           </div>
           <div className="min-w-0 flex-1">
             <div className="font-medium truncate">{file.name}</div>
-            <div className="text-xs text-muted-foreground mt-1">
-              {(file.size / 1024 / 1024).toFixed(2)} MB · ~{file.estimatedPages} pages
+            <div className="text-xs text-muted-foreground mt-1 flex items-center gap-2">
+              <span>{(file.size / 1024 / 1024).toFixed(2)} MB</span>
+              <span>·</span>
+              {file.detecting ? (
+                <span className="inline-flex items-center gap-1 text-primary"><Loader2 className="h-3 w-3 animate-spin" /> Detecting pages…</span>
+              ) : file.pages ? (
+                <span><strong className="text-foreground">{file.pages}</strong> page{file.pages > 1 ? "s" : ""} detected{file.countMethod === "pdf" ? " (exact)" : ""}</span>
+              ) : (
+                <span className="text-destructive">{file.countError}</span>
+              )}
             </div>
           </div>
           <Button variant="ghost" size="icon" onClick={() => setFile(null)} aria-label="Remove file">
@@ -378,8 +402,9 @@ function StepReview({ file, config }: { file: UploadedFile | null; config: Print
   );
 }
 
-function StepCheckout({ customer, setCustomer, delivery, setDelivery }: { customer: CustomerInfo; setCustomer: React.Dispatch<React.SetStateAction<CustomerInfo>>; delivery: Delivery; setDelivery: (d: Delivery) => void; }) {
+function StepCheckout({ customer, setCustomer, delivery, setDelivery, zone, setZone }: { customer: CustomerInfo; setCustomer: React.Dispatch<React.SetStateAction<CustomerInfo>>; delivery: Delivery; setDelivery: (d: Delivery) => void; zone: IbadanZone | undefined; setZone: (z: IbadanZone) => void; }) {
   function up<K extends keyof CustomerInfo>(k: K, v: CustomerInfo[K]) { setCustomer((c) => ({ ...c, [k]: v })); }
+  const selectedZone = IBADAN_ZONES.find((z) => z.value === zone);
   return (
     <div className="space-y-6">
       <div>
@@ -394,19 +419,33 @@ function StepCheckout({ customer, setCustomer, delivery, setDelivery }: { custom
 
       <ChoiceGroup label="Fulfillment" value={delivery} onChange={(v) => setDelivery(v as Delivery)} options={[
         { value: "pickup", label: "Store pickup", hint: "Free · Ready in 2–4h" },
-        { value: "delivery", label: "Home delivery", hint: "+₦1,500 · 1–2 days" },
+        { value: "delivery", label: "Delivery (Ibadan only)", hint: "Fee depends on zone" },
       ]} />
 
       {delivery === "delivery" && (
         <div className="space-y-2">
-          <Label>Delivery address *</Label>
-          <Textarea value={customer.address} onChange={(e) => up("address", e.target.value)} placeholder="Street, area, city, state" rows={3} />
+          <Label>Delivery zone (within Ibadan) *</Label>
+          <Select value={zone ?? ""} onValueChange={(v) => setZone(v as IbadanZone)}>
+            <SelectTrigger><SelectValue placeholder="Select your area in Ibadan" /></SelectTrigger>
+            <SelectContent>
+              {IBADAN_ZONES.map((z) => (
+                <SelectItem key={z.value} value={z.value}>
+                  {z.label} — {formatNaira(z.fee)} · {z.eta}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {selectedZone ? (
+            <p className="text-xs text-muted-foreground">Fee: <span className="font-medium text-foreground">{formatNaira(selectedZone.fee)}</span> · ETA: {selectedZone.eta}</p>
+          ) : (
+            <p className="text-xs text-muted-foreground">We currently deliver only within Ibadan.</p>
+          )}
         </div>
       )}
 
       <div className="space-y-2">
         <Label>Notes (optional)</Label>
-        <Textarea value={customer.notes} onChange={(e) => up("notes", e.target.value)} placeholder="Any special instructions?" rows={2} />
+        <Textarea value={customer.notes} onChange={(e) => up("notes", e.target.value)} placeholder="Landmark, gate code, special instructions?" rows={2} />
       </div>
 
       <div className="rounded-xl border border-border bg-secondary/40 p-4 text-xs text-muted-foreground">
