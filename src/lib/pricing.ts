@@ -120,7 +120,7 @@ export function calculatePrice(c: PrintConfig): PriceBreakdown {
   const paperSurcharge = PAPER_SURCHARGE[c.paper] * effectiveSheets;
   const bindingTotal = BINDING_FLAT[c.binding] * Math.max(1, c.copies);
   const coverTotal = COVER_FLAT[c.cover] * Math.max(1, c.copies);
-  const deliveryFee = c.delivery === "delivery" ? DELIVERY_FEE : 0;
+  const deliveryFee = c.delivery === "delivery" ? getZoneFee(c.zone) : 0;
 
   const subtotal = pagesTotal + paperSurcharge + bindingTotal + coverTotal;
   const total = subtotal + deliveryFee;
