@@ -91,7 +91,6 @@ function OrderPage() {
 
   function submitOrder() {
     if (!customer.name || !customer.phone) { toast.error("Name and phone are required"); return; }
-    if (customer.delivery !== undefined) {/* no-op */}
     if (config.delivery === "delivery" && !customer.address) { toast.error("Please add a delivery address"); return; }
     setSubmitting(true);
     setTimeout(() => {
