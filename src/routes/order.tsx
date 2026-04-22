@@ -81,7 +81,6 @@ function OrderPage() {
     name: "",
     phone: "",
     email: "",
-    address: "",
     notes: "",
   });
 
