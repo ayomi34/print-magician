@@ -28,6 +28,9 @@ export function SiteHeader() {
           <Link to="/support" className="hover:text-foreground transition-colors" activeProps={{ className: "text-foreground" }}>
             Support
           </Link>
+          <Link to="/admin" className="hover:text-foreground transition-colors" activeProps={{ className: "text-foreground" }}>
+            Admin
+          </Link>
         </nav>
         <Button asChild size="sm" className="shadow-[var(--shadow-card)]">
           <Link to="/order">Start order</Link>
