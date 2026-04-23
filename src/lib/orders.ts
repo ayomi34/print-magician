@@ -74,7 +74,7 @@ export async function fetchOrders(): Promise<StoredOrder[]> {
     .select("*")
     .order("created_at", { ascending: false });
   if (error) throw error;
-  return (data as DbRow[]).map(rowToOrder);
+  return (data as unknown as DbRow[]).map(rowToOrder);
 }
 
 export async function fetchOrder(id: string): Promise<StoredOrder | null> {
@@ -84,22 +84,24 @@ export async function fetchOrder(id: string): Promise<StoredOrder | null> {
     .eq("id", id)
     .maybeSingle();
   if (error) throw error;
-  return data ? rowToOrder(data as DbRow) : null;
+  return data ? rowToOrder(data as unknown as DbRow) : null;
 }
 
 export async function addOrder(order: StoredOrder): Promise<void> {
-  const { error } = await supabase.from("orders").insert({
+  const payload = {
     id: order.id,
     status: order.status,
     customer_name: order.customer.name,
     customer_phone: order.customer.phone,
     customer_email: order.customer.email || null,
     customer_notes: order.customer.notes || null,
-    config: order.config,
+    config: order.config as unknown as Record<string, unknown>,
     file_name: order.fileName,
     file_size: order.fileSize,
     total: order.total,
-  });
+  };
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { error } = await supabase.from("orders").insert(payload as any);
   if (error) throw error;
 }
 
