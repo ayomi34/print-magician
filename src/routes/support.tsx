@@ -3,6 +3,7 @@ import { Mail, MessageCircle, Phone } from "lucide-react";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
 import { SupportFab } from "@/components/SupportFab";
+import { EMAIL, PHONE_DISPLAY, PHONE_TEL, WHATSAPP_URL } from "@/lib/contact";
 
 export const Route = createFileRoute("/support")({
   head: () => ({
@@ -16,9 +17,9 @@ export const Route = createFileRoute("/support")({
 
 function SupportPage() {
   const channels = [
-    { icon: MessageCircle, title: "WhatsApp chat", desc: "Fastest replies, 8am–8pm.", href: "https://wa.me/2348000000000", cta: "Open WhatsApp" },
-    { icon: Mail, title: "Email", desc: "We reply within 1 business day.", href: "mailto:hello@printflow.ng", cta: "hello@printflow.ng" },
-    { icon: Phone, title: "Phone", desc: "Mon–Sat, 9am–6pm.", href: "tel:+2348000000000", cta: "+234 800 000 0000" },
+    { icon: MessageCircle, title: "WhatsApp chat", desc: "Fastest replies, 8am–8pm.", href: WHATSAPP_URL, cta: "Open WhatsApp" },
+    { icon: Mail, title: "Email", desc: "We reply within 1 business day.", href: `mailto:${EMAIL}`, cta: EMAIL },
+    { icon: Phone, title: "Phone", desc: "Mon–Sat, 9am–6pm.", href: PHONE_TEL, cta: PHONE_DISPLAY },
   ];
   return (
     <div className="min-h-screen flex flex-col">
