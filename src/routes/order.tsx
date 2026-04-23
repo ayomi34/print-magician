@@ -1,5 +1,5 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { useMemo, useRef, useState } from "react";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowLeft, ArrowRight, Check, FileText, Loader2, Upload as UploadIcon, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -88,6 +88,42 @@ function OrderPage() {
   });
 
   const breakdown = useMemo(() => calculatePrice(config), [config]);
+  const navigate = useNavigate();
+
+  // Handle Paystack callback: verify payment & save order on success
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const url = new URL(window.location.href);
+    const reference = url.searchParams.get("reference") || url.searchParams.get("trxref");
+    if (!reference) return;
+
+    let cancelled = false;
+    (async () => {
+      const t = toast.loading("Verifying your payment…");
+      try {
+        const res = await verifyAndSaveOrder({ data: { reference } });
+        if (cancelled) return;
+        toast.dismiss(t);
+        toast.success(`Payment confirmed! Order ${res.orderId}`);
+        sessionStorage.removeItem("printflow:pendingRef");
+        sessionStorage.removeItem("printflow:returnTo");
+        // Clean URL and route to track page
+        void navigate({ to: "/track", search: { id: res.orderId } as never });
+      } catch (e) {
+        if (cancelled) return;
+        toast.dismiss(t);
+        const msg = e instanceof Error ? e.message : "Verification failed";
+        toast.error(msg);
+        // Clean reference from URL so the user can retry
+        url.searchParams.delete("reference");
+        url.searchParams.delete("trxref");
+        window.history.replaceState({}, "", url.pathname + (url.search || ""));
+      }
+    })();
+
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   function next() {
     if (step === 0) {
