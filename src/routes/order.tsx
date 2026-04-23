@@ -26,7 +26,7 @@ import {
   type SideMode,
 } from "@/lib/pricing";
 import { countPages } from "@/lib/countPages";
-import { addOrder, generateOrderId } from "@/lib/orders";
+import { addOrder, generateOrderId, uploadPrintFile } from "@/lib/orders";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/order")({
@@ -52,6 +52,7 @@ interface UploadedFile {
   detecting: boolean;
   countMethod?: "pdf" | "image";
   countError?: string;
+  raw?: File; // keep original for upload
 }
 
 interface CustomerInfo {
@@ -98,13 +99,17 @@ function OrderPage() {
   }
   function prev() { setStep((s) => Math.max(s - 1, 0)); }
 
-  function submitOrder() {
+  async function submitOrder() {
     if (!customer.name || !customer.phone) { toast.error("Name and phone are required"); return; }
     if (config.delivery === "delivery" && !config.zone) { toast.error("Please pick a delivery zone in Ibadan"); return; }
     setSubmitting(true);
-    setTimeout(() => {
+    try {
       const orderId = generateOrderId();
-      addOrder({
+      // Upload file to Lovable Cloud storage if present (best-effort)
+      if (file?.raw) {
+        await uploadPrintFile(orderId, file.raw);
+      }
+      await addOrder({
         id: orderId,
         createdAt: Date.now(),
         status: "pending",
@@ -115,8 +120,12 @@ function OrderPage() {
         total: breakdown.total,
       });
       toast.success("Order placed! ID: " + orderId);
+    } catch (e) {
+      console.error(e);
+      toast.error("Could not place order. Please try again.");
+    } finally {
       setSubmitting(false);
-    }, 1200);
+    }
   }
 
   return (
@@ -192,21 +201,21 @@ function StepUpload({ file, setFile, setConfig }: { file: UploadedFile | null; s
 
   async function handleFiles(files: FileList | null) {
     const f = files?.[0]; if (!f) return;
-    const allowed = ["application/pdf", "image/png", "image/jpeg", "image/webp", "application/vnd.openxmlformats-officedocument.wordprocessingml.document", "application/msword"];
-    if (!allowed.includes(f.type) && !f.name.match(/\.(pdf|docx?|png|jpe?g|webp)$/i)) { toast.error("Unsupported file type"); return; }
+    const allowed = ["application/pdf", "image/png", "image/jpeg", "application/vnd.openxmlformats-officedocument.wordprocessingml.document", "application/msword"];
+    if (!allowed.includes(f.type) && !f.name.match(/\.(pdf|docx?|png|jpe?g)$/i)) { toast.error("Only PDF, DOCX, PNG, or JPG files are supported"); return; }
     if (f.size > 50 * 1024 * 1024) { toast.error("Max 50MB"); return; }
     const previewUrl = f.type.startsWith("image/") || f.type === "application/pdf" ? URL.createObjectURL(f) : undefined;
 
     // Show file immediately with detecting state
-    setFile({ name: f.name, size: f.size, type: f.type, previewUrl, pages: null, detecting: true });
+    setFile({ name: f.name, size: f.size, type: f.type, previewUrl, pages: null, detecting: true, raw: f });
 
     const result = await countPages(f);
     if (result.ok) {
-      setFile({ name: f.name, size: f.size, type: f.type, previewUrl, pages: result.pages, detecting: false, countMethod: result.method });
+      setFile({ name: f.name, size: f.size, type: f.type, previewUrl, pages: result.pages, detecting: false, countMethod: result.method, raw: f });
       setConfig((c) => ({ ...c, pages: result.pages }));
       toast.success(`Detected ${result.pages} page${result.pages > 1 ? "s" : ""}`);
     } else {
-      setFile({ name: f.name, size: f.size, type: f.type, previewUrl, pages: null, detecting: false, countError: result.reason });
+      setFile({ name: f.name, size: f.size, type: f.type, previewUrl, pages: null, detecting: false, countError: result.reason, raw: f });
       toast.error(result.reason);
     }
   }
@@ -214,7 +223,7 @@ function StepUpload({ file, setFile, setConfig }: { file: UploadedFile | null; s
   return (
     <div>
       <h2 className="text-xl font-bold">Upload your file</h2>
-      <p className="text-sm text-muted-foreground mt-1">PDF, DOCX or images up to 50MB.</p>
+      <p className="text-sm text-muted-foreground mt-1">PDF, DOCX, PNG or JPG up to 50MB.</p>
 
       {!file ? (
         <button
@@ -260,7 +269,7 @@ function StepUpload({ file, setFile, setConfig }: { file: UploadedFile | null; s
         </div>
       )}
 
-      <input ref={inputRef} type="file" hidden accept=".pdf,.doc,.docx,image/*" onChange={(e) => handleFiles(e.target.files)} />
+      <input ref={inputRef} type="file" hidden accept=".pdf,.doc,.docx,.png,.jpg,.jpeg,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,image/png,image/jpeg" onChange={(e) => handleFiles(e.target.files)} />
     </div>
   );
 }

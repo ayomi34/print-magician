@@ -1,9 +1,10 @@
 import { MessageCircle } from "lucide-react";
+import { WHATSAPP_URL } from "@/lib/contact";
 
 export function SupportFab() {
   return (
     <a
-      href="https://wa.me/2348000000000"
+      href={WHATSAPP_URL}
       target="_blank"
       rel="noreferrer"
       aria-label="Chat with support on WhatsApp"

@@ -5,11 +5,9 @@ import {
   CheckCircle2,
   Clock,
   Download,
-  LogOut,
   Package,
   Printer as PrinterIcon,
   Search,
-  Shield,
   Trash2,
   TrendingUp,
   Truck,
@@ -17,7 +15,6 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Select,
@@ -46,9 +43,10 @@ import { SiteFooter } from "@/components/SiteFooter";
 import { toast } from "sonner";
 import {
   deleteOrder,
-  loadOrders,
+  fetchOrders,
   ORDER_STATUSES,
   STATUS_LABELS,
+  subscribeOrders,
   updateOrderStatus,
   type OrderStatus,
   type StoredOrder,
@@ -66,76 +64,38 @@ export const Route = createFileRoute("/admin")({
   component: AdminPage,
 });
 
-// NOTE: This is a *demo* gate using sessionStorage. Real auth comes when we wire Lovable Cloud.
-const DEMO_PIN = "printflow";
-const AUTH_KEY = "pf_admin_ok";
-
 function AdminPage() {
-  const [authed, setAuthed] = useState(false);
-  useEffect(() => {
-    if (typeof window !== "undefined" && window.sessionStorage.getItem(AUTH_KEY) === "1") {
-      setAuthed(true);
-    }
-  }, []);
-
   return (
     <div className="min-h-screen flex flex-col bg-secondary/30">
       <SiteHeader />
       <main className="flex-1 container mx-auto px-4 py-8 md:py-12">
-        {authed ? <Dashboard onLogout={() => { window.sessionStorage.removeItem(AUTH_KEY); setAuthed(false); }} /> : <Login onSuccess={() => { window.sessionStorage.setItem(AUTH_KEY, "1"); setAuthed(true); }} />}
+        <Dashboard />
       </main>
       <SiteFooter />
     </div>
   );
 }
 
-function Login({ onSuccess }: { onSuccess: () => void }) {
-  const [pin, setPin] = useState("");
-  function submit(e: React.FormEvent) {
-    e.preventDefault();
-    if (pin.trim().toLowerCase() === DEMO_PIN) {
-      toast.success("Welcome back, admin");
-      onSuccess();
-    } else {
-      toast.error("Incorrect access key");
-    }
-  }
-  return (
-    <div className="max-w-md mx-auto mt-12">
-      <Card className="shadow-[var(--shadow-card)]">
-        <CardHeader>
-          <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-lg grid place-items-center text-primary-foreground" style={{ background: "var(--gradient-primary)" }}>
-              <Shield className="h-5 w-5" />
-            </div>
-            <div>
-              <CardTitle>Admin Access</CardTitle>
-              <p className="text-xs text-muted-foreground mt-1">Enter your access key to continue.</p>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={submit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="pin">Access key</Label>
-              <Input id="pin" type="password" value={pin} onChange={(e) => setPin(e.target.value)} placeholder="••••••••" autoFocus />
-              <p className="text-[11px] text-muted-foreground">Demo key: <code className="font-mono">printflow</code> — replace with real auth via Lovable Cloud.</p>
-            </div>
-            <Button type="submit" className="w-full">Sign in</Button>
-          </form>
-        </CardContent>
-      </Card>
-    </div>
-  );
-}
-
-function Dashboard({ onLogout }: { onLogout: () => void }) {
+function Dashboard() {
   const [orders, setOrders] = useState<StoredOrder[]>([]);
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<OrderStatus | "all">("all");
 
-  function refresh() { setOrders(loadOrders()); }
-  useEffect(() => { refresh(); }, []);
+  async function refresh() {
+    try {
+      setOrders(await fetchOrders());
+    } catch (e) {
+      console.error(e);
+      toast.error("Could not load orders");
+    }
+  }
+
+  useEffect(() => {
+    refresh();
+    // Realtime: refresh whenever orders table changes anywhere.
+    const unsubscribe = subscribeOrders(() => { refresh(); });
+    return unsubscribe;
+  }, []);
 
   const stats = useMemo(() => {
     const total = orders.length;
@@ -163,16 +123,24 @@ function Dashboard({ onLogout }: { onLogout: () => void }) {
     });
   }, [orders, query, statusFilter]);
 
-  function handleStatus(id: string, status: OrderStatus) {
-    updateOrderStatus(id, status);
-    refresh();
-    toast.success(`Order ${id} → ${STATUS_LABELS[status]}`);
+  async function handleStatus(id: string, status: OrderStatus) {
+    try {
+      await updateOrderStatus(id, status);
+      toast.success(`Order ${id} → ${STATUS_LABELS[status]}`);
+    } catch (e) {
+      console.error(e);
+      toast.error("Update failed");
+    }
   }
-  function handleDelete(id: string) {
+  async function handleDelete(id: string) {
     if (!confirm(`Delete order ${id}? This can't be undone.`)) return;
-    deleteOrder(id);
-    refresh();
-    toast.success("Order deleted");
+    try {
+      await deleteOrder(id);
+      toast.success("Order deleted");
+    } catch (e) {
+      console.error(e);
+      toast.error("Delete failed");
+    }
   }
   function exportCsv() {
     if (orders.length === 0) { toast.error("No orders to export"); return; }
@@ -213,7 +181,6 @@ function Dashboard({ onLogout }: { onLogout: () => void }) {
         </div>
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" onClick={exportCsv}><Download className="mr-1 h-4 w-4" /> Export CSV</Button>
-          <Button variant="ghost" size="sm" onClick={onLogout}><LogOut className="mr-1 h-4 w-4" /> Sign out</Button>
         </div>
       </div>
 

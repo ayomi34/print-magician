@@ -1,5 +1,6 @@
 import { Printer } from "lucide-react";
 import { Link } from "@tanstack/react-router";
+import { EMAIL, PHONE_DISPLAY, PHONE_TEL, WHATSAPP_URL } from "@/lib/contact";
 
 export function SiteFooter() {
   return (
@@ -30,7 +31,9 @@ export function SiteFooter() {
           <h4 className="font-semibold mb-3 text-sm">Help</h4>
           <ul className="space-y-2 text-sm text-muted-foreground">
             <li><Link to="/support" className="hover:text-foreground">Contact support</Link></li>
-            <li><a href="mailto:hello@printflow.ng" className="hover:text-foreground">hello@printflow.ng</a></li>
+            <li><a href={WHATSAPP_URL} target="_blank" rel="noreferrer" className="hover:text-foreground">WhatsApp: {PHONE_DISPLAY}</a></li>
+            <li><a href={PHONE_TEL} className="hover:text-foreground">Call {PHONE_DISPLAY}</a></li>
+            <li><a href={`mailto:${EMAIL}`} className="hover:text-foreground">{EMAIL}</a></li>
           </ul>
         </div>
         <div>
