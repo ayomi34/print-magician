@@ -156,7 +156,9 @@ export const verifyAndSaveOrder = createServerFn({ method: "POST" })
       total: breakdown.total,
       payment_reference: data.reference,
       payment_status: "paid",
-    });
+    };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { error } = await supabaseAdmin.from("orders").insert(insertPayload as any);
     if (error) {
       console.error("Order insert failed:", error);
       throw new Error("Could not save order");
