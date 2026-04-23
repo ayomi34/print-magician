@@ -1,6 +1,5 @@
-// Local mock orders store (will move to Lovable Cloud later).
-// Persists to localStorage so the admin dashboard, /track, and order history all share data.
-
+// Orders persistence layer — backed by Lovable Cloud (Supabase) with realtime sync.
+import { supabase } from "@/integrations/supabase/client";
 import type { PrintConfig } from "./pricing";
 
 export type OrderStatus =
@@ -29,52 +28,6 @@ export interface StoredOrder {
   total: number;
 }
 
-const KEY = "pf_orders";
-
-export function loadOrders(): StoredOrder[] {
-  if (typeof window === "undefined") return [];
-  try {
-    const raw = window.localStorage.getItem(KEY);
-    if (!raw) return [];
-    const arr = JSON.parse(raw) as StoredOrder[];
-    return Array.isArray(arr) ? arr : [];
-  } catch {
-    return [];
-  }
-}
-
-export function saveOrders(orders: StoredOrder[]) {
-  if (typeof window === "undefined") return;
-  window.localStorage.setItem(KEY, JSON.stringify(orders));
-}
-
-export function addOrder(order: StoredOrder) {
-  const all = loadOrders();
-  all.unshift(order);
-  saveOrders(all);
-}
-
-export function updateOrderStatus(id: string, status: OrderStatus) {
-  const all = loadOrders();
-  const idx = all.findIndex((o) => o.id === id);
-  if (idx >= 0) {
-    all[idx].status = status;
-    saveOrders(all);
-  }
-}
-
-export function deleteOrder(id: string) {
-  const all = loadOrders().filter((o) => o.id !== id);
-  saveOrders(all);
-  if (typeof window !== "undefined") {
-    window.localStorage.removeItem(`pf_order_${id}`);
-  }
-}
-
-export function generateOrderId(): string {
-  return "PF-" + Math.random().toString(36).slice(2, 8).toUpperCase();
-}
-
 export const STATUS_LABELS: Record<OrderStatus, string> = {
   pending: "Pending",
   processing: "Processing",
@@ -82,3 +35,112 @@ export const STATUS_LABELS: Record<OrderStatus, string> = {
   ready: "Ready / Out for delivery",
   completed: "Completed",
 };
+
+interface DbRow {
+  id: string;
+  created_at: string;
+  status: string;
+  customer_name: string;
+  customer_phone: string;
+  customer_email: string | null;
+  customer_notes: string | null;
+  config: PrintConfig;
+  file_name: string | null;
+  file_size: number | null;
+  total: number;
+}
+
+function rowToOrder(r: DbRow): StoredOrder {
+  return {
+    id: r.id,
+    createdAt: new Date(r.created_at).getTime(),
+    status: r.status as OrderStatus,
+    customer: {
+      name: r.customer_name,
+      phone: r.customer_phone,
+      email: r.customer_email ?? "",
+      notes: r.customer_notes ?? "",
+    },
+    config: r.config,
+    fileName: r.file_name ?? "—",
+    fileSize: Number(r.file_size ?? 0),
+    total: Number(r.total),
+  };
+}
+
+export async function fetchOrders(): Promise<StoredOrder[]> {
+  const { data, error } = await supabase
+    .from("orders")
+    .select("*")
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return (data as DbRow[]).map(rowToOrder);
+}
+
+export async function fetchOrder(id: string): Promise<StoredOrder | null> {
+  const { data, error } = await supabase
+    .from("orders")
+    .select("*")
+    .eq("id", id)
+    .maybeSingle();
+  if (error) throw error;
+  return data ? rowToOrder(data as DbRow) : null;
+}
+
+export async function addOrder(order: StoredOrder): Promise<void> {
+  const { error } = await supabase.from("orders").insert({
+    id: order.id,
+    status: order.status,
+    customer_name: order.customer.name,
+    customer_phone: order.customer.phone,
+    customer_email: order.customer.email || null,
+    customer_notes: order.customer.notes || null,
+    config: order.config,
+    file_name: order.fileName,
+    file_size: order.fileSize,
+    total: order.total,
+  });
+  if (error) throw error;
+}
+
+export async function updateOrderStatus(id: string, status: OrderStatus): Promise<void> {
+  const { error } = await supabase.from("orders").update({ status }).eq("id", id);
+  if (error) throw error;
+}
+
+export async function deleteOrder(id: string): Promise<void> {
+  const { error } = await supabase.from("orders").delete().eq("id", id);
+  if (error) throw error;
+}
+
+/** Subscribe to realtime changes on the orders table. Returns unsubscribe fn. */
+export function subscribeOrders(onChange: () => void): () => void {
+  const channel = supabase
+    .channel("orders-changes")
+    .on("postgres_changes", { event: "*", schema: "public", table: "orders" }, () => {
+      onChange();
+    })
+    .subscribe();
+  return () => {
+    supabase.removeChannel(channel);
+  };
+}
+
+export function generateOrderId(): string {
+  return "PF-" + Math.random().toString(36).slice(2, 8).toUpperCase();
+}
+
+/** Upload print file to Lovable Cloud storage. Returns public URL or null on failure. */
+export async function uploadPrintFile(orderId: string, file: File): Promise<string | null> {
+  const path = `${orderId}/${file.name}`;
+  const { error } = await supabase.storage.from("print-files").upload(path, file, {
+    upsert: true,
+    contentType: file.type,
+  });
+  if (error) {
+    console.error("Upload error:", error);
+    return null;
+  }
+  const { data } = supabase.storage.from("print-files").getPublicUrl(path);
+  return data.publicUrl;
+}
