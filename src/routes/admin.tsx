@@ -52,6 +52,9 @@ import {
   type StoredOrder,
 } from "@/lib/orders";
 import { formatNaira, IBADAN_ZONES } from "@/lib/pricing";
+import { useAuth } from "@/hooks/useAuth";
+import { Link, useNavigate } from "@tanstack/react-router";
+import { Loader2, ShieldAlert } from "lucide-react";
 
 export const Route = createFileRoute("/admin")({
   head: () => ({
@@ -65,6 +68,44 @@ export const Route = createFileRoute("/admin")({
 });
 
 function AdminPage() {
+  const { user, isAdmin, loading } = useAuth();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!loading && !user) void navigate({ to: "/auth" });
+  }, [user, loading, navigate]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen grid place-items-center bg-secondary/30">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  if (!user) return null;
+
+  if (!isAdmin) {
+    return (
+      <div className="min-h-screen flex flex-col bg-secondary/30">
+        <SiteHeader />
+        <main className="flex-1 grid place-items-center px-4">
+          <div className="max-w-md text-center rounded-2xl border border-border bg-card p-8 shadow-[var(--shadow-card)]">
+            <div className="mx-auto h-12 w-12 rounded-full bg-destructive/10 grid place-items-center mb-4">
+              <ShieldAlert className="h-6 w-6 text-destructive" />
+            </div>
+            <h1 className="text-xl font-bold">Admin access required</h1>
+            <p className="text-sm text-muted-foreground mt-2">
+              Your account doesn't have admin privileges. Contact the owner if you believe this is a mistake.
+            </p>
+            <Link to="/" className="inline-block mt-6 text-sm underline">← Back to home</Link>
+          </div>
+        </main>
+        <SiteFooter />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen flex flex-col bg-secondary/30">
       <SiteHeader />
