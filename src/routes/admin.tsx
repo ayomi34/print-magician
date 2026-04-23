@@ -77,13 +77,26 @@ function AdminPage() {
   );
 }
 
-function Dashboard({ onLogout }: { onLogout: () => void }) {
+function Dashboard() {
   const [orders, setOrders] = useState<StoredOrder[]>([]);
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<OrderStatus | "all">("all");
 
-  function refresh() { setOrders(loadOrders()); }
-  useEffect(() => { refresh(); }, []);
+  async function refresh() {
+    try {
+      setOrders(await fetchOrders());
+    } catch (e) {
+      console.error(e);
+      toast.error("Could not load orders");
+    }
+  }
+
+  useEffect(() => {
+    refresh();
+    // Realtime: refresh whenever orders table changes anywhere.
+    const unsubscribe = subscribeOrders(() => { refresh(); });
+    return unsubscribe;
+  }, []);
 
   const stats = useMemo(() => {
     const total = orders.length;
@@ -111,16 +124,24 @@ function Dashboard({ onLogout }: { onLogout: () => void }) {
     });
   }, [orders, query, statusFilter]);
 
-  function handleStatus(id: string, status: OrderStatus) {
-    updateOrderStatus(id, status);
-    refresh();
-    toast.success(`Order ${id} → ${STATUS_LABELS[status]}`);
+  async function handleStatus(id: string, status: OrderStatus) {
+    try {
+      await updateOrderStatus(id, status);
+      toast.success(`Order ${id} → ${STATUS_LABELS[status]}`);
+    } catch (e) {
+      console.error(e);
+      toast.error("Update failed");
+    }
   }
-  function handleDelete(id: string) {
+  async function handleDelete(id: string) {
     if (!confirm(`Delete order ${id}? This can't be undone.`)) return;
-    deleteOrder(id);
-    refresh();
-    toast.success("Order deleted");
+    try {
+      await deleteOrder(id);
+      toast.success("Order deleted");
+    } catch (e) {
+      console.error(e);
+      toast.error("Delete failed");
+    }
   }
   function exportCsv() {
     if (orders.length === 0) { toast.error("No orders to export"); return; }
@@ -161,7 +182,6 @@ function Dashboard({ onLogout }: { onLogout: () => void }) {
         </div>
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" onClick={exportCsv}><Download className="mr-1 h-4 w-4" /> Export CSV</Button>
-          <Button variant="ghost" size="sm" onClick={onLogout}><LogOut className="mr-1 h-4 w-4" /> Sign out</Button>
         </div>
       </div>
 
