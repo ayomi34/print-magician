@@ -26,7 +26,8 @@ import {
   type SideMode,
 } from "@/lib/pricing";
 import { countPages } from "@/lib/countPages";
-import { addOrder, generateOrderId, uploadPrintFile } from "@/lib/orders";
+import { uploadPrintFile } from "@/lib/orders";
+import { initPayment, verifyAndSaveOrder } from "@/lib/payments.functions";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/order")({
@@ -101,29 +102,36 @@ function OrderPage() {
 
   async function submitOrder() {
     if (!customer.name || !customer.phone) { toast.error("Name and phone are required"); return; }
+    if (!customer.email) { toast.error("Email is required for Paystack receipt"); return; }
     if (config.delivery === "delivery" && !config.zone) { toast.error("Please pick a delivery zone in Ibadan"); return; }
     setSubmitting(true);
     try {
-      const orderId = generateOrderId();
-      // Upload file to Lovable Cloud storage if present (best-effort)
-      if (file?.raw) {
-        await uploadPrintFile(orderId, file.raw);
-      }
-      await addOrder({
-        id: orderId,
-        createdAt: Date.now(),
-        status: "pending",
-        customer,
-        config,
-        fileName: file?.name ?? "—",
-        fileSize: file?.size ?? 0,
-        total: breakdown.total,
+      // 1) Initialize Paystack transaction on the server
+      const init = await initPayment({
+        data: {
+          config,
+          customer,
+          fileName: file?.name ?? "",
+          fileSize: file?.size ?? 0,
+        },
       });
-      toast.success("Order placed! ID: " + orderId);
+
+      // 2) Upload the file to storage (best-effort) using the orderId from init
+      if (file?.raw) {
+        try { await uploadPrintFile(init.orderId, file.raw); } catch (e) { console.error("Upload failed:", e); }
+      }
+
+      // 3) Open Paystack checkout (redirect to authorization_url)
+      // We use the authorization_url returned by Paystack for a hosted checkout
+      // — works on all browsers, no inline script needed.
+      const verifyUrl = `${window.location.origin}/order?reference=${encodeURIComponent(init.reference)}`;
+      sessionStorage.setItem("printflow:pendingRef", init.reference);
+      sessionStorage.setItem("printflow:returnTo", verifyUrl);
+      window.location.href = init.authorizationUrl;
     } catch (e) {
       console.error(e);
-      toast.error("Could not place order. Please try again.");
-    } finally {
+      const msg = e instanceof Error ? e.message : "Could not start payment";
+      toast.error(msg);
       setSubmitting(false);
     }
   }
