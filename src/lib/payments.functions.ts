@@ -143,7 +143,7 @@ export const verifyAndSaveOrder = createServerFn({ method: "POST" })
       throw new Error("Payment amount mismatch — please contact support");
     }
 
-    const { error } = await supabaseAdmin.from("orders").insert({
+    const insertPayload = {
       id: orderId,
       status: "pending",
       customer_name: customer.name,
