@@ -372,7 +372,6 @@ function Dashboard() {
           <Card>
             <CardHeader>
               <CardTitle>Pricing rules</CardTitle>
-              <p className="text-xs text-muted-foreground">Read-only preview. Editing rules will be enabled with Lovable Cloud.</p>
             </CardHeader>
             <CardContent className="space-y-6 text-sm">
               <RuleBlock title="Base per-page rate">
