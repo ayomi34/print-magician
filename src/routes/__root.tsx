@@ -2,7 +2,7 @@ import { Outlet, Link, createRootRoute, HeadContent, Scripts } from "@tanstack/r
 import { Toaster } from "@/components/ui/sonner";
 import { AuthProvider } from "@/hooks/useAuth";
 
-import appCss from "../styles.css?url";
+import "../styles.css";
 
 function NotFoundComponent() {
   return (
@@ -42,12 +42,6 @@ export const Route = createRootRoute({
       { name: "twitter:description", content: "Upload, configure and order professional prints in minutes. Pay with Paystack." },
       { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/36193b5b-ffc1-493a-b133-f19461749296/id-preview-03542002--728d5d77-1614-46e3-9000-986dfc9c837f.lovable.app-1776881261065.png" },
       { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/36193b5b-ffc1-493a-b133-f19461749296/id-preview-03542002--728d5d77-1614-46e3-9000-986dfc9c837f.lovable.app-1776881261065.png" },
-    ],
-    links: [
-      {
-        rel: "stylesheet",
-        href: appCss,
-      },
     ],
   }),
   shellComponent: RootShell,
