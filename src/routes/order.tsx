@@ -14,7 +14,6 @@ import { SupportFab } from "@/components/SupportFab";
 import {
   calculatePrice,
   formatNaira,
-  IBADAN_ZONES,
   type Binding,
   type ColorMode,
   type Cover,
@@ -25,6 +24,7 @@ import {
   type PrintConfig,
   type SideMode,
 } from "@/lib/pricing";
+import { useSettings, type ZoneSetting } from "@/lib/settings";
 import { countPages } from "@/lib/countPages";
 import { uploadPrintFile } from "@/lib/orders";
 import { initPayment, verifyAndSaveOrder } from "@/lib/payments.functions";
