@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
 import { SupportFab } from "@/components/SupportFab";
+import { useSettings } from "@/lib/settings";
 import heroImg from "@/assets/hero-print.jpg";
 
 export const Route = createFileRoute("/")({
@@ -19,6 +20,7 @@ export const Route = createFileRoute("/")({
 });
 
 function HomePage() {
+  const { site } = useSettings();
   return (
     <div className="min-h-screen flex flex-col">
       <SiteHeader />
@@ -33,7 +35,7 @@ function HomePage() {
           <div className="container mx-auto px-4 py-20 md:py-28 grid lg:grid-cols-2 gap-12 items-center">
             <div className="text-primary-foreground">
               <span className="inline-flex items-center gap-2 rounded-full bg-white/10 backdrop-blur px-3 py-1 text-xs font-medium ring-1 ring-white/20">
-                <Sparkles className="h-3.5 w-3.5" /> Now serving all 36 states
+                <Sparkles className="h-3.5 w-3.5" /> {site.heroBadge}
               </span>
               <h1 className="mt-5 text-4xl md:text-6xl font-bold tracking-tight leading-[1.05]">
                 Printing made <span className="text-transparent bg-clip-text" style={{ backgroundImage: "linear-gradient(135deg,#fff,#bcd3ff)" }}>effortless.</span>
