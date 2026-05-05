@@ -6,8 +6,11 @@ import {
   Clock,
   Download,
   Package,
+  Plus,
   Printer as PrinterIcon,
+  Save,
   Search,
+  Settings,
   Trash2,
   TrendingUp,
   Truck,
@@ -15,6 +18,8 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Select,
@@ -51,7 +56,8 @@ import {
   type OrderStatus,
   type StoredOrder,
 } from "@/lib/orders";
-import { formatNaira, IBADAN_ZONES } from "@/lib/pricing";
+import { formatNaira } from "@/lib/pricing";
+import { useSettings, saveSetting, type PricingSettings, type SiteSettings, type ZoneSetting } from "@/lib/settings";
 import { useAuth } from "@/hooks/useAuth";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { Loader2, ShieldAlert } from "lucide-react";
