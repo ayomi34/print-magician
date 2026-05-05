@@ -468,9 +468,9 @@ function StepReview({ file, config, pricing }: { file: UploadedFile | null; conf
   );
 }
 
-function StepCheckout({ customer, setCustomer, delivery, setDelivery, zone, setZone }: { customer: CustomerInfo; setCustomer: React.Dispatch<React.SetStateAction<CustomerInfo>>; delivery: Delivery; setDelivery: (d: Delivery) => void; zone: IbadanZone | undefined; setZone: (z: IbadanZone) => void; }) {
+function StepCheckout({ customer, setCustomer, delivery, setDelivery, zone, setZone, zones }: { customer: CustomerInfo; setCustomer: React.Dispatch<React.SetStateAction<CustomerInfo>>; delivery: Delivery; setDelivery: (d: Delivery) => void; zone: IbadanZone | undefined; setZone: (z: IbadanZone) => void; zones: ZoneSetting[] }) {
   function up<K extends keyof CustomerInfo>(k: K, v: CustomerInfo[K]) { setCustomer((c) => ({ ...c, [k]: v })); }
-  const selectedZone = IBADAN_ZONES.find((z) => z.value === zone);
+  const selectedZone = zones.find((z) => z.value === zone);
   return (
     <div className="space-y-6">
       <div>
@@ -490,11 +490,11 @@ function StepCheckout({ customer, setCustomer, delivery, setDelivery, zone, setZ
 
       {delivery === "delivery" && (
         <div className="space-y-2">
-          <Label>Delivery zone (within Ibadan) *</Label>
+          <Label>Delivery zone *</Label>
           <Select value={zone ?? ""} onValueChange={(v) => setZone(v as IbadanZone)}>
-            <SelectTrigger><SelectValue placeholder="Select your area in Ibadan" /></SelectTrigger>
+            <SelectTrigger><SelectValue placeholder="Select your area" /></SelectTrigger>
             <SelectContent>
-              {IBADAN_ZONES.map((z) => (
+              {zones.map((z) => (
                 <SelectItem key={z.value} value={z.value}>
                   {z.label} — {formatNaira(z.fee)} · {z.eta}
                 </SelectItem>
@@ -504,7 +504,7 @@ function StepCheckout({ customer, setCustomer, delivery, setDelivery, zone, setZ
           {selectedZone ? (
             <p className="text-xs text-muted-foreground">Fee: <span className="font-medium text-foreground">{formatNaira(selectedZone.fee)}</span> · ETA: {selectedZone.eta}</p>
           ) : (
-            <p className="text-xs text-muted-foreground">We currently deliver only within Ibadan.</p>
+            <p className="text-xs text-muted-foreground">Pick a delivery area to see the fee.</p>
           )}
         </div>
       )}
@@ -521,8 +521,8 @@ function StepCheckout({ customer, setCustomer, delivery, setDelivery, zone, setZ
   );
 }
 
-function SummaryCard({ config, file }: { config: PrintConfig; file: UploadedFile | null }) {
-  const b = calculatePrice(config);
+function SummaryCard({ config, file, pricing }: { config: PrintConfig; file: UploadedFile | null; pricing: import("@/lib/settings").PricingSettings }) {
+  const b = calculatePrice(config, pricing);
   return (
     <aside className="lg:sticky lg:top-24 rounded-2xl border border-border bg-card p-6 shadow-[var(--shadow-card)]">
       <h3 className="font-semibold">Order summary</h3>
