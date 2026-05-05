@@ -185,8 +185,8 @@ function OrderPage() {
             <div className="rounded-2xl border border-border bg-card p-6 md:p-8 shadow-[var(--shadow-card)]">
               {step === 0 && <StepUpload file={file} setFile={setFile} setConfig={setConfig} />}
               {step === 1 && <StepConfigure config={config} setConfig={setConfig} />}
-              {step === 2 && <StepReview file={file} config={config} />}
-              {step === 3 && <StepCheckout customer={customer} setCustomer={setCustomer} delivery={config.delivery} setDelivery={(d) => setConfig((c) => ({ ...c, delivery: d, zone: d === "delivery" ? c.zone : undefined }))} zone={config.zone} setZone={(z) => setConfig((c) => ({ ...c, zone: z }))} />}
+              {step === 2 && <StepReview file={file} config={config} pricing={pricing} />}
+              {step === 3 && <StepCheckout customer={customer} setCustomer={setCustomer} delivery={config.delivery} setDelivery={(d) => setConfig((c) => ({ ...c, delivery: d, zone: d === "delivery" ? c.zone : undefined }))} zone={config.zone} setZone={(z) => setConfig((c) => ({ ...c, zone: z }))} zones={activeZones} />}
 
               <div className="mt-8 flex items-center justify-between">
                 <Button variant="ghost" onClick={prev} disabled={step === 0}>
@@ -204,7 +204,7 @@ function OrderPage() {
               </div>
             </div>
 
-            <SummaryCard config={config} file={file} />
+            <SummaryCard config={config} file={file} pricing={pricing} />
           </div>
 
           <p className="text-center text-xs text-muted-foreground mt-6">
@@ -430,7 +430,9 @@ function ChoiceGroup({ label, value, onChange, options }: { label: string; value
   );
 }
 
-function StepReview({ file, config }: { file: UploadedFile | null; config: PrintConfig }) {
+function StepReview({ file, config, pricing }: { file: UploadedFile | null; config: PrintConfig; pricing: import("@/lib/settings").PricingSettings }) {
+  const b = calculatePrice(config, pricing);
+  void b;
   const b = calculatePrice(config);
   const rows: [string, string][] = [
     ["File", file?.name ?? "—"],
