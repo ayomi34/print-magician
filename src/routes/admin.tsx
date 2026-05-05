@@ -6,8 +6,11 @@ import {
   Clock,
   Download,
   Package,
+  Plus,
   Printer as PrinterIcon,
+  Save,
   Search,
+  Settings,
   Trash2,
   TrendingUp,
   Truck,
@@ -15,6 +18,8 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Select,
@@ -51,7 +56,8 @@ import {
   type OrderStatus,
   type StoredOrder,
 } from "@/lib/orders";
-import { formatNaira, IBADAN_ZONES } from "@/lib/pricing";
+import { formatNaira } from "@/lib/pricing";
+import { useSettings, saveSetting, type PricingSettings, type SiteSettings, type ZoneSetting } from "@/lib/settings";
 import { useAuth } from "@/hooks/useAuth";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { Loader2, ShieldAlert } from "lucide-react";
@@ -121,6 +127,7 @@ function Dashboard() {
   const [orders, setOrders] = useState<StoredOrder[]>([]);
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<OrderStatus | "all">("all");
+  const { pricing, site } = useSettings();
 
   async function refresh() {
     try {
@@ -237,7 +244,8 @@ function Dashboard() {
         <TabsList>
           <TabsTrigger value="orders"><Package className="h-4 w-4 mr-1" /> Orders</TabsTrigger>
           <TabsTrigger value="analytics"><BarChart3 className="h-4 w-4 mr-1" /> Analytics</TabsTrigger>
-          <TabsTrigger value="pricing"><PrinterIcon className="h-4 w-4 mr-1" /> Pricing rules</TabsTrigger>
+          <TabsTrigger value="pricing"><PrinterIcon className="h-4 w-4 mr-1" /> Pricing</TabsTrigger>
+          <TabsTrigger value="settings"><Settings className="h-4 w-4 mr-1" /> Settings</TabsTrigger>
         </TabsList>
 
         <TabsContent value="orders" className="mt-6">
@@ -298,7 +306,7 @@ function Dashboard() {
                             {o.config.delivery === "delivery" ? (
                               <div className="text-xs">
                                 <div className="font-medium">Delivery</div>
-                                <div className="text-muted-foreground">{IBADAN_ZONES.find((z) => z.value === o.config.zone)?.label ?? "—"}</div>
+                                <div className="text-muted-foreground">{pricing.zones.find((z) => z.value === o.config.zone)?.label ?? "—"}</div>
                               </div>
                             ) : (
                               <div className="text-xs"><div className="font-medium">Pickup</div><div className="text-muted-foreground">In-store</div></div>
@@ -369,40 +377,11 @@ function Dashboard() {
         </TabsContent>
 
         <TabsContent value="pricing" className="mt-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Pricing rules</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6 text-sm">
-              <RuleBlock title="Base per-page rate">
-                <Rule k="Black & white" v="₦30 / page" />
-                <Rule k="Full color" v="₦100 / page" />
-              </RuleBlock>
-              <RuleBlock title="Bulk discounts">
-                <Rule k="50–499 pages" v="15% off per page" />
-                <Rule k="500–999 pages" v="25% off per page" />
-                <Rule k="1000+ pages" v="Flat ₦20 / page" />
-              </RuleBlock>
-              <RuleBlock title="Surcharges">
-                <Rule k="Matte paper" v="+₦15 / sheet" />
-                <Rule k="Glossy paper" v="+₦25 / sheet" />
-                <Rule k="Cardstock" v="+₦40 / sheet" />
-                <Rule k="Stapled" v="+₦100" />
-                <Rule k="Spiral binding" v="+₦800" />
-                <Rule k="Hardcover" v="+₦3,500" />
-              </RuleBlock>
-              <RuleBlock title="Ibadan delivery zones">
-                <div className="grid sm:grid-cols-2 gap-2">
-                  {IBADAN_ZONES.map((z) => (
-                    <div key={z.value} className="flex justify-between rounded-md border border-border px-3 py-2 text-xs">
-                      <span>{z.label}</span>
-                      <span className="font-medium">{formatNaira(z.fee)} · {z.eta}</span>
-                    </div>
-                  ))}
-                </div>
-              </RuleBlock>
-            </CardContent>
-          </Card>
+          <PricingEditor pricing={pricing} />
+        </TabsContent>
+
+        <TabsContent value="settings" className="mt-6">
+          <SiteSettingsEditor site={site} />
         </TabsContent>
       </Tabs>
     </div>
@@ -476,6 +455,184 @@ function RuleBlock({ title, children }: { title: string; children: React.ReactNo
   );
 }
 
+function NumField({ label, value, onChange }: { label: string; value: number; onChange: (n: number) => void }) {
+  return (
+    <div className="space-y-1.5">
+      <Label className="text-xs">{label}</Label>
+      <Input
+        type="number"
+        min={0}
+        value={Number.isFinite(value) ? value : 0}
+        onChange={(e) => onChange(Number(e.target.value) || 0)}
+      />
+    </div>
+  );
+}
+
+function PricingEditor({ pricing }: { pricing: PricingSettings }) {
+  const [draft, setDraft] = useState<PricingSettings>(pricing);
+  const [saving, setSaving] = useState(false);
+
+  // Reset draft when settings reload from realtime updates
+  useEffect(() => { setDraft(pricing); }, [pricing]);
+
+  function up<K extends keyof PricingSettings>(k: K, v: PricingSettings[K]) {
+    setDraft((d) => ({ ...d, [k]: v }));
+  }
+
+  function updateZone(idx: number, patch: Partial<ZoneSetting>) {
+    setDraft((d) => ({ ...d, zones: d.zones.map((z, i) => (i === idx ? { ...z, ...patch } : z)) }));
+  }
+  function removeZone(idx: number) {
+    setDraft((d) => ({ ...d, zones: d.zones.filter((_, i) => i !== idx) }));
+  }
+  function addZone() {
+    setDraft((d) => ({
+      ...d,
+      zones: [...d.zones, { value: `zone_${Date.now().toString(36)}`, label: "New zone", fee: 1000, eta: "1 day", active: true }],
+    }));
+  }
+
+  async function save() {
+    setSaving(true);
+    try {
+      await saveSetting("pricing", draft);
+      toast.success("Pricing updated — changes are live");
+    } catch (e) {
+      console.error(e);
+      toast.error("Could not save pricing");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between">
+        <CardTitle>Pricing rules</CardTitle>
+        <Button onClick={save} disabled={saving} size="sm">
+          {saving ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Save className="h-4 w-4 mr-1" />} Save changes
+        </Button>
+      </CardHeader>
+      <CardContent className="space-y-8">
+        <section>
+          <h3 className="text-sm font-semibold mb-3">Base per-page rate (₦)</h3>
+          <div className="grid sm:grid-cols-2 gap-3">
+            <NumField label="Black & white" value={draft.baseBW} onChange={(n) => up("baseBW", n)} />
+            <NumField label="Full color" value={draft.baseColor} onChange={(n) => up("baseColor", n)} />
+          </div>
+        </section>
+
+        <section>
+          <h3 className="text-sm font-semibold mb-3">Paper surcharge (₦ per sheet)</h3>
+          <div className="grid sm:grid-cols-4 gap-3">
+            {(Object.keys(draft.paperSurcharge) as Array<keyof PricingSettings["paperSurcharge"]>).map((k) => (
+              <NumField key={k} label={k} value={draft.paperSurcharge[k]} onChange={(n) => up("paperSurcharge", { ...draft.paperSurcharge, [k]: n })} />
+            ))}
+          </div>
+        </section>
+
+        <section>
+          <h3 className="text-sm font-semibold mb-3">Binding (₦ per copy)</h3>
+          <div className="grid sm:grid-cols-4 gap-3">
+            {(Object.keys(draft.bindingFlat) as Array<keyof PricingSettings["bindingFlat"]>).map((k) => (
+              <NumField key={k} label={k} value={draft.bindingFlat[k]} onChange={(n) => up("bindingFlat", { ...draft.bindingFlat, [k]: n })} />
+            ))}
+          </div>
+        </section>
+
+        <section>
+          <h3 className="text-sm font-semibold mb-3">Cover (₦ per copy)</h3>
+          <div className="grid sm:grid-cols-4 gap-3">
+            {(Object.keys(draft.coverFlat) as Array<keyof PricingSettings["coverFlat"]>).map((k) => (
+              <NumField key={k} label={k} value={draft.coverFlat[k]} onChange={(n) => up("coverFlat", { ...draft.coverFlat, [k]: n })} />
+            ))}
+          </div>
+        </section>
+
+        <section>
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-semibold">Delivery zones</h3>
+            <Button size="sm" variant="outline" onClick={addZone}><Plus className="h-4 w-4 mr-1" /> Add zone</Button>
+          </div>
+          <div className="space-y-2">
+            {draft.zones.map((z, idx) => (
+              <div key={idx} className="grid grid-cols-12 gap-2 items-end rounded-md border border-border p-3">
+                <div className="col-span-12 sm:col-span-4 space-y-1.5">
+                  <Label className="text-xs">Label</Label>
+                  <Input value={z.label} onChange={(e) => updateZone(idx, { label: e.target.value })} />
+                </div>
+                <div className="col-span-6 sm:col-span-2 space-y-1.5">
+                  <Label className="text-xs">Fee (₦)</Label>
+                  <Input type="number" min={0} value={z.fee} onChange={(e) => updateZone(idx, { fee: Number(e.target.value) || 0 })} />
+                </div>
+                <div className="col-span-6 sm:col-span-2 space-y-1.5">
+                  <Label className="text-xs">ETA</Label>
+                  <Input value={z.eta} onChange={(e) => updateZone(idx, { eta: e.target.value })} />
+                </div>
+                <div className="col-span-6 sm:col-span-2 space-y-1.5">
+                  <Label className="text-xs">Key</Label>
+                  <Input value={z.value} onChange={(e) => updateZone(idx, { value: e.target.value.replace(/\s+/g, "_") })} />
+                </div>
+                <div className="col-span-4 sm:col-span-1 flex flex-col items-center gap-1">
+                  <Label className="text-xs">Active</Label>
+                  <Switch checked={z.active} onCheckedChange={(v) => updateZone(idx, { active: v })} />
+                </div>
+                <div className="col-span-2 sm:col-span-1 flex justify-end">
+                  <Button variant="ghost" size="icon" onClick={() => removeZone(idx)} className="text-muted-foreground hover:text-destructive">
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      </CardContent>
+    </Card>
+  );
+}
+
+function SiteSettingsEditor({ site }: { site: SiteSettings }) {
+  const [draft, setDraft] = useState<SiteSettings>(site);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => { setDraft(site); }, [site]);
+
+  async function save() {
+    setSaving(true);
+    try {
+      await saveSetting("site", draft);
+      toast.success("Site settings updated");
+    } catch (e) {
+      console.error(e);
+      toast.error("Could not save settings");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between">
+        <CardTitle>Site settings</CardTitle>
+        <Button onClick={save} disabled={saving} size="sm">
+          {saving ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Save className="h-4 w-4 mr-1" />} Save changes
+        </Button>
+      </CardHeader>
+      <CardContent className="space-y-4 max-w-xl">
+        <div className="space-y-2">
+          <Label>Hero badge text</Label>
+          <Input value={draft.heroBadge} onChange={(e) => setDraft((d) => ({ ...d, heroBadge: e.target.value }))} />
+          <p className="text-xs text-muted-foreground">Shown at the top of the homepage hero. e.g. "Active in Ibadan · Ekiti coming soon"</p>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+// Suppress unused-import warnings for icons that exist for future use
+void CheckCircle2; void Truck;
+// Keep Rule symbol referenced even though it's not currently rendered
 function Rule({ k, v }: { k: string; v: string }) {
   return (
     <div className="flex justify-between rounded-md border border-border px-3 py-2 text-xs">
@@ -484,6 +641,4 @@ function Rule({ k, v }: { k: string; v: string }) {
     </div>
   );
 }
-
-// Suppress unused-import warnings for icons that exist for future use
-void CheckCircle2; void Truck;
+void Rule;

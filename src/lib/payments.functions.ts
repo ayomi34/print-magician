@@ -5,6 +5,7 @@ import { z } from "zod";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import type { PrintConfig } from "@/lib/pricing";
 import { calculatePrice } from "@/lib/pricing";
+import { loadPricingServer } from "@/lib/settings.server";
 
 const PAYSTACK_BASE = "https://api.paystack.co";
 
@@ -49,7 +50,8 @@ function genOrderId(): string {
 export const initPayment = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => InitInput.parse(input))
   .handler(async ({ data }) => {
-    const breakdown = calculatePrice(data.config as PrintConfig);
+    const pricing = await loadPricingServer();
+    const breakdown = calculatePrice(data.config as PrintConfig, pricing);
     const amountKobo = Math.round(breakdown.total * 100);
     if (amountKobo < 100) {
       throw new Error("Order amount is too low");
@@ -136,7 +138,8 @@ export const verifyAndSaveOrder = createServerFn({ method: "POST" })
     const orderId = String(meta.orderId || `PF-${Date.now().toString(36).toUpperCase()}`);
 
     // Re-compute price server-side; reject if Paystack amount doesn't match.
-    const breakdown = calculatePrice(config as PrintConfig);
+    const pricing = await loadPricingServer();
+    const breakdown = calculatePrice(config as PrintConfig, pricing);
     const expectedKobo = Math.round(breakdown.total * 100);
     if (Number(tx.amount) !== expectedKobo) {
       console.error("Amount mismatch", { paid: tx.amount, expected: expectedKobo });

@@ -1,4 +1,7 @@
 // Print pricing engine — all amounts in NGN (₦)
+// The pricing tables can be overridden at runtime via PricingSettings (admin-edited).
+
+import { DEFAULT_PRICING, type PricingSettings, type ZoneSetting } from "./settings-types";
 
 export type ColorMode = "bw" | "color";
 export type SideMode = "single" | "double";
@@ -7,34 +10,14 @@ export type PaperType = "plain" | "glossy" | "matte" | "cardstock";
 export type Binding = "none" | "stapled" | "spiral" | "hardcover";
 export type Cover = "none" | "transparent" | "card" | "custom";
 export type Delivery = "pickup" | "delivery";
-export type IbadanZone =
-  | "bodija"
-  | "ui_agbowo"
-  | "ringroad"
-  | "challenge"
-  | "dugbe"
-  | "mokola"
-  | "iwo_road"
-  | "akobo"
-  | "apata"
-  | "ojoo"
-  | "moniya"
-  | "egbeda";
+// Zone is now a free-form string (admin can add/remove zones).
+export type ZoneId = string;
+// Backward compatibility for old code paths.
+export type IbadanZone = string;
 
-export const IBADAN_ZONES: { value: IbadanZone; label: string; fee: number; eta: string }[] = [
-  { value: "dugbe",     label: "Dugbe / Adamasingba",       fee: 1200, eta: "Same day" },
-  { value: "mokola",    label: "Mokola / Sango",            fee: 1200, eta: "Same day" },
-  { value: "bodija",    label: "Bodija / Agbowo",           fee: 1500, eta: "Same day" },
-  { value: "ui_agbowo", label: "UI / Ajibode",              fee: 1500, eta: "Same day" },
-  { value: "ringroad",  label: "Ring Road / Molete",        fee: 1800, eta: "1 day" },
-  { value: "challenge", label: "Challenge / Felele",        fee: 1800, eta: "1 day" },
-  { value: "iwo_road",  label: "Iwo Road / New Garage",     fee: 2000, eta: "1 day" },
-  { value: "akobo",     label: "Akobo / Basorun",           fee: 2000, eta: "1 day" },
-  { value: "apata",     label: "Apata / Odo Ona",           fee: 2200, eta: "1–2 days" },
-  { value: "egbeda",    label: "Egbeda / Olodo",            fee: 2200, eta: "1–2 days" },
-  { value: "ojoo",      label: "Ojoo / Sasa",               fee: 2500, eta: "1–2 days" },
-  { value: "moniya",    label: "Moniya / Akinyele",         fee: 2800, eta: "1–2 days" },
-];
+/** @deprecated Use settings.zones from useSettings() — kept as fallback for legacy imports. */
+export const IBADAN_ZONES: { value: string; label: string; fee: number; eta: string }[] =
+  DEFAULT_PRICING.zones.filter((z) => z.active).map((z) => ({ value: z.value, label: z.label, fee: z.fee, eta: z.eta }));
 
 export interface PrintConfig {
   pages: number;
@@ -46,27 +29,15 @@ export interface PrintConfig {
   binding: Binding;
   cover: Cover;
   delivery: Delivery;
-  zone?: IbadanZone;
+  zone?: ZoneId;
 }
 
-// Per-page base for B&W plain A4
-const BASE_BW = 30;
-const BASE_COLOR = 100;
-
-// Bulk tiers (applied to base per-page)
 function tieredPerPage(base: number, totalPages: number): number {
   if (totalPages >= 1000) return Math.min(base, 20);
   if (totalPages >= 500) return base * 0.75;
   if (totalPages >= 50) return base * 0.85;
   return base;
 }
-
-const PAPER_SURCHARGE: Record<PaperType, number> = {
-  plain: 0,
-  matte: 15,
-  glossy: 25,
-  cardstock: 40,
-};
 
 const SIZE_MULT: Record<PaperSize, number> = {
   A5: 0.7,
@@ -76,23 +47,9 @@ const SIZE_MULT: Record<PaperSize, number> = {
   Custom: 1.3,
 };
 
-const BINDING_FLAT: Record<Binding, number> = {
-  none: 0,
-  stapled: 100,
-  spiral: 800,
-  hardcover: 3500,
-};
-
-const COVER_FLAT: Record<Cover, number> = {
-  none: 0,
-  transparent: 200,
-  card: 500,
-  custom: 1000,
-};
-
-export function getZoneFee(zone?: IbadanZone): number {
+export function getZoneFee(zone: string | undefined, zones: ZoneSetting[] = DEFAULT_PRICING.zones): number {
   if (!zone) return 0;
-  return IBADAN_ZONES.find((z) => z.value === zone)?.fee ?? 0;
+  return zones.find((z) => z.value === zone)?.fee ?? 0;
 }
 
 export interface PriceBreakdown {
@@ -107,20 +64,19 @@ export interface PriceBreakdown {
   effectiveSheets: number;
 }
 
-export function calculatePrice(c: PrintConfig): PriceBreakdown {
-  const sheetsPerCopy =
-    c.sides === "double" ? Math.ceil(c.pages / 2) : c.pages;
+export function calculatePrice(c: PrintConfig, settings: PricingSettings = DEFAULT_PRICING): PriceBreakdown {
+  const sheetsPerCopy = c.sides === "double" ? Math.ceil(c.pages / 2) : c.pages;
   const effectiveSheets = sheetsPerCopy * Math.max(1, c.copies);
   const totalPagesPrinted = c.pages * Math.max(1, c.copies);
 
-  const base = c.color === "color" ? BASE_COLOR : BASE_BW;
+  const base = c.color === "color" ? settings.baseColor : settings.baseBW;
   const perPage = tieredPerPage(base, totalPagesPrinted) * SIZE_MULT[c.size];
 
   const pagesTotal = perPage * totalPagesPrinted;
-  const paperSurcharge = PAPER_SURCHARGE[c.paper] * effectiveSheets;
-  const bindingTotal = BINDING_FLAT[c.binding] * Math.max(1, c.copies);
-  const coverTotal = COVER_FLAT[c.cover] * Math.max(1, c.copies);
-  const deliveryFee = c.delivery === "delivery" ? getZoneFee(c.zone) : 0;
+  const paperSurcharge = (settings.paperSurcharge[c.paper] ?? 0) * effectiveSheets;
+  const bindingTotal = (settings.bindingFlat[c.binding] ?? 0) * Math.max(1, c.copies);
+  const coverTotal = (settings.coverFlat[c.cover] ?? 0) * Math.max(1, c.copies);
+  const deliveryFee = c.delivery === "delivery" ? getZoneFee(c.zone, settings.zones) : 0;
 
   const subtotal = pagesTotal + paperSurcharge + bindingTotal + coverTotal;
   const total = subtotal + deliveryFee;
