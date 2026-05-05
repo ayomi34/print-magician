@@ -455,6 +455,184 @@ function RuleBlock({ title, children }: { title: string; children: React.ReactNo
   );
 }
 
+function NumField({ label, value, onChange }: { label: string; value: number; onChange: (n: number) => void }) {
+  return (
+    <div className="space-y-1.5">
+      <Label className="text-xs">{label}</Label>
+      <Input
+        type="number"
+        min={0}
+        value={Number.isFinite(value) ? value : 0}
+        onChange={(e) => onChange(Number(e.target.value) || 0)}
+      />
+    </div>
+  );
+}
+
+function PricingEditor({ pricing }: { pricing: PricingSettings }) {
+  const [draft, setDraft] = useState<PricingSettings>(pricing);
+  const [saving, setSaving] = useState(false);
+
+  // Reset draft when settings reload from realtime updates
+  useEffect(() => { setDraft(pricing); }, [pricing]);
+
+  function up<K extends keyof PricingSettings>(k: K, v: PricingSettings[K]) {
+    setDraft((d) => ({ ...d, [k]: v }));
+  }
+
+  function updateZone(idx: number, patch: Partial<ZoneSetting>) {
+    setDraft((d) => ({ ...d, zones: d.zones.map((z, i) => (i === idx ? { ...z, ...patch } : z)) }));
+  }
+  function removeZone(idx: number) {
+    setDraft((d) => ({ ...d, zones: d.zones.filter((_, i) => i !== idx) }));
+  }
+  function addZone() {
+    setDraft((d) => ({
+      ...d,
+      zones: [...d.zones, { value: `zone_${Date.now().toString(36)}`, label: "New zone", fee: 1000, eta: "1 day", active: true }],
+    }));
+  }
+
+  async function save() {
+    setSaving(true);
+    try {
+      await saveSetting("pricing", draft);
+      toast.success("Pricing updated — changes are live");
+    } catch (e) {
+      console.error(e);
+      toast.error("Could not save pricing");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between">
+        <CardTitle>Pricing rules</CardTitle>
+        <Button onClick={save} disabled={saving} size="sm">
+          {saving ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Save className="h-4 w-4 mr-1" />} Save changes
+        </Button>
+      </CardHeader>
+      <CardContent className="space-y-8">
+        <section>
+          <h3 className="text-sm font-semibold mb-3">Base per-page rate (₦)</h3>
+          <div className="grid sm:grid-cols-2 gap-3">
+            <NumField label="Black & white" value={draft.baseBW} onChange={(n) => up("baseBW", n)} />
+            <NumField label="Full color" value={draft.baseColor} onChange={(n) => up("baseColor", n)} />
+          </div>
+        </section>
+
+        <section>
+          <h3 className="text-sm font-semibold mb-3">Paper surcharge (₦ per sheet)</h3>
+          <div className="grid sm:grid-cols-4 gap-3">
+            {(Object.keys(draft.paperSurcharge) as Array<keyof PricingSettings["paperSurcharge"]>).map((k) => (
+              <NumField key={k} label={k} value={draft.paperSurcharge[k]} onChange={(n) => up("paperSurcharge", { ...draft.paperSurcharge, [k]: n })} />
+            ))}
+          </div>
+        </section>
+
+        <section>
+          <h3 className="text-sm font-semibold mb-3">Binding (₦ per copy)</h3>
+          <div className="grid sm:grid-cols-4 gap-3">
+            {(Object.keys(draft.bindingFlat) as Array<keyof PricingSettings["bindingFlat"]>).map((k) => (
+              <NumField key={k} label={k} value={draft.bindingFlat[k]} onChange={(n) => up("bindingFlat", { ...draft.bindingFlat, [k]: n })} />
+            ))}
+          </div>
+        </section>
+
+        <section>
+          <h3 className="text-sm font-semibold mb-3">Cover (₦ per copy)</h3>
+          <div className="grid sm:grid-cols-4 gap-3">
+            {(Object.keys(draft.coverFlat) as Array<keyof PricingSettings["coverFlat"]>).map((k) => (
+              <NumField key={k} label={k} value={draft.coverFlat[k]} onChange={(n) => up("coverFlat", { ...draft.coverFlat, [k]: n })} />
+            ))}
+          </div>
+        </section>
+
+        <section>
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-semibold">Delivery zones</h3>
+            <Button size="sm" variant="outline" onClick={addZone}><Plus className="h-4 w-4 mr-1" /> Add zone</Button>
+          </div>
+          <div className="space-y-2">
+            {draft.zones.map((z, idx) => (
+              <div key={idx} className="grid grid-cols-12 gap-2 items-end rounded-md border border-border p-3">
+                <div className="col-span-12 sm:col-span-4 space-y-1.5">
+                  <Label className="text-xs">Label</Label>
+                  <Input value={z.label} onChange={(e) => updateZone(idx, { label: e.target.value })} />
+                </div>
+                <div className="col-span-6 sm:col-span-2 space-y-1.5">
+                  <Label className="text-xs">Fee (₦)</Label>
+                  <Input type="number" min={0} value={z.fee} onChange={(e) => updateZone(idx, { fee: Number(e.target.value) || 0 })} />
+                </div>
+                <div className="col-span-6 sm:col-span-2 space-y-1.5">
+                  <Label className="text-xs">ETA</Label>
+                  <Input value={z.eta} onChange={(e) => updateZone(idx, { eta: e.target.value })} />
+                </div>
+                <div className="col-span-6 sm:col-span-2 space-y-1.5">
+                  <Label className="text-xs">Key</Label>
+                  <Input value={z.value} onChange={(e) => updateZone(idx, { value: e.target.value.replace(/\s+/g, "_") })} />
+                </div>
+                <div className="col-span-4 sm:col-span-1 flex flex-col items-center gap-1">
+                  <Label className="text-xs">Active</Label>
+                  <Switch checked={z.active} onCheckedChange={(v) => updateZone(idx, { active: v })} />
+                </div>
+                <div className="col-span-2 sm:col-span-1 flex justify-end">
+                  <Button variant="ghost" size="icon" onClick={() => removeZone(idx)} className="text-muted-foreground hover:text-destructive">
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      </CardContent>
+    </Card>
+  );
+}
+
+function SiteSettingsEditor({ site }: { site: SiteSettings }) {
+  const [draft, setDraft] = useState<SiteSettings>(site);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => { setDraft(site); }, [site]);
+
+  async function save() {
+    setSaving(true);
+    try {
+      await saveSetting("site", draft);
+      toast.success("Site settings updated");
+    } catch (e) {
+      console.error(e);
+      toast.error("Could not save settings");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between">
+        <CardTitle>Site settings</CardTitle>
+        <Button onClick={save} disabled={saving} size="sm">
+          {saving ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Save className="h-4 w-4 mr-1" />} Save changes
+        </Button>
+      </CardHeader>
+      <CardContent className="space-y-4 max-w-xl">
+        <div className="space-y-2">
+          <Label>Hero badge text</Label>
+          <Input value={draft.heroBadge} onChange={(e) => setDraft((d) => ({ ...d, heroBadge: e.target.value }))} />
+          <p className="text-xs text-muted-foreground">Shown at the top of the homepage hero. e.g. "Active in Ibadan · Ekiti coming soon"</p>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+// Suppress unused-import warnings for icons that exist for future use
+void CheckCircle2; void Truck;
+// Keep Rule symbol referenced even though it's not currently rendered
 function Rule({ k, v }: { k: string; v: string }) {
   return (
     <div className="flex justify-between rounded-md border border-border px-3 py-2 text-xs">
@@ -463,6 +641,4 @@ function Rule({ k, v }: { k: string; v: string }) {
     </div>
   );
 }
-
-// Suppress unused-import warnings for icons that exist for future use
-void CheckCircle2; void Truck;
+void Rule;
