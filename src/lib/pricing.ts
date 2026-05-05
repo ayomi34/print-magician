@@ -1,7 +1,7 @@
 // Print pricing engine — all amounts in NGN (₦)
 // The pricing tables can be overridden at runtime via PricingSettings (admin-edited).
 
-import { DEFAULT_PRICING, type PricingSettings, type ZoneSetting } from "./settings";
+import { DEFAULT_PRICING, type PricingSettings, type ZoneSetting } from "./settings-types";
 
 export type ColorMode = "bw" | "color";
 export type SideMode = "single" | "double";
