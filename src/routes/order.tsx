@@ -432,8 +432,6 @@ function ChoiceGroup({ label, value, onChange, options }: { label: string; value
 
 function StepReview({ file, config, pricing }: { file: UploadedFile | null; config: PrintConfig; pricing: import("@/lib/settings").PricingSettings }) {
   const b = calculatePrice(config, pricing);
-  void b;
-  const b = calculatePrice(config);
   const rows: [string, string][] = [
     ["File", file?.name ?? "—"],
     ["Pages × Copies", `${config.pages} × ${config.copies}`],
