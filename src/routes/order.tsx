@@ -87,7 +87,9 @@ function OrderPage() {
     notes: "",
   });
 
-  const breakdown = useMemo(() => calculatePrice(config), [config]);
+  const { pricing } = useSettings();
+  const activeZones = useMemo(() => pricing.zones.filter((z) => z.active), [pricing.zones]);
+  const breakdown = useMemo(() => calculatePrice(config, pricing), [config, pricing]);
   const navigate = useNavigate();
 
   // Handle Paystack callback: verify payment & save order on success
