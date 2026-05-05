@@ -127,6 +127,7 @@ function Dashboard() {
   const [orders, setOrders] = useState<StoredOrder[]>([]);
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<OrderStatus | "all">("all");
+  const { pricing, site } = useSettings();
 
   async function refresh() {
     try {
@@ -243,7 +244,8 @@ function Dashboard() {
         <TabsList>
           <TabsTrigger value="orders"><Package className="h-4 w-4 mr-1" /> Orders</TabsTrigger>
           <TabsTrigger value="analytics"><BarChart3 className="h-4 w-4 mr-1" /> Analytics</TabsTrigger>
-          <TabsTrigger value="pricing"><PrinterIcon className="h-4 w-4 mr-1" /> Pricing rules</TabsTrigger>
+          <TabsTrigger value="pricing"><PrinterIcon className="h-4 w-4 mr-1" /> Pricing</TabsTrigger>
+          <TabsTrigger value="settings"><Settings className="h-4 w-4 mr-1" /> Settings</TabsTrigger>
         </TabsList>
 
         <TabsContent value="orders" className="mt-6">
@@ -304,7 +306,7 @@ function Dashboard() {
                             {o.config.delivery === "delivery" ? (
                               <div className="text-xs">
                                 <div className="font-medium">Delivery</div>
-                                <div className="text-muted-foreground">{IBADAN_ZONES.find((z) => z.value === o.config.zone)?.label ?? "—"}</div>
+                                <div className="text-muted-foreground">{pricing.zones.find((z) => z.value === o.config.zone)?.label ?? "—"}</div>
                               </div>
                             ) : (
                               <div className="text-xs"><div className="font-medium">Pickup</div><div className="text-muted-foreground">In-store</div></div>
@@ -375,40 +377,11 @@ function Dashboard() {
         </TabsContent>
 
         <TabsContent value="pricing" className="mt-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Pricing rules</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6 text-sm">
-              <RuleBlock title="Base per-page rate">
-                <Rule k="Black & white" v="₦30 / page" />
-                <Rule k="Full color" v="₦100 / page" />
-              </RuleBlock>
-              <RuleBlock title="Bulk discounts">
-                <Rule k="50–499 pages" v="15% off per page" />
-                <Rule k="500–999 pages" v="25% off per page" />
-                <Rule k="1000+ pages" v="Flat ₦20 / page" />
-              </RuleBlock>
-              <RuleBlock title="Surcharges">
-                <Rule k="Matte paper" v="+₦15 / sheet" />
-                <Rule k="Glossy paper" v="+₦25 / sheet" />
-                <Rule k="Cardstock" v="+₦40 / sheet" />
-                <Rule k="Stapled" v="+₦100" />
-                <Rule k="Spiral binding" v="+₦800" />
-                <Rule k="Hardcover" v="+₦3,500" />
-              </RuleBlock>
-              <RuleBlock title="Ibadan delivery zones">
-                <div className="grid sm:grid-cols-2 gap-2">
-                  {IBADAN_ZONES.map((z) => (
-                    <div key={z.value} className="flex justify-between rounded-md border border-border px-3 py-2 text-xs">
-                      <span>{z.label}</span>
-                      <span className="font-medium">{formatNaira(z.fee)} · {z.eta}</span>
-                    </div>
-                  ))}
-                </div>
-              </RuleBlock>
-            </CardContent>
-          </Card>
+          <PricingEditor pricing={pricing} />
+        </TabsContent>
+
+        <TabsContent value="settings" className="mt-6">
+          <SiteSettingsEditor site={site} />
         </TabsContent>
       </Tabs>
     </div>
