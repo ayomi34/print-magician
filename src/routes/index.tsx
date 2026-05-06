@@ -20,7 +20,8 @@ export const Route = createFileRoute("/")({
 });
 
 function HomePage() {
-  const { site } = useSettings();
+  const { site, pricing } = useSettings();
+  const bulkPrice = Math.min(pricing.baseBW, 20);
   return (
     <div className="min-h-screen flex flex-col">
       <SiteHeader />
