@@ -68,7 +68,7 @@ function HomePage() {
               />
               <div className="absolute -bottom-5 -left-5 hidden md:block bg-card text-card-foreground rounded-xl shadow-[var(--shadow-elegant)] p-4 ring-1 ring-border">
                 <div className="text-xs text-muted-foreground">Bulk price from</div>
-                <div className="text-2xl font-bold">₦20<span className="text-sm font-normal text-muted-foreground">/page</span></div>
+                <div className="text-2xl font-bold">₦{bulkPrice}<span className="text-sm font-normal text-muted-foreground">/page</span></div>
               </div>
             </div>
           </div>
