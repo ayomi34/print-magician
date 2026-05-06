@@ -111,7 +111,7 @@ function HomePage() {
             <div className="relative grid md:grid-cols-3 gap-8 items-center">
               <div className="md:col-span-2">
                 <h2 className="text-3xl md:text-4xl font-bold">Transparent bulk pricing</h2>
-                <p className="mt-3 text-white/85 max-w-xl">Pay less as you print more. From ₦30/page for B&W down to ₦20/page on orders of 1,000+ pages.</p>
+                <p className="mt-3 text-white/85 max-w-xl">Pay less as you print more. From ₦{pricing.baseBW}/page for B&W down to ₦{bulkPrice}/page on orders of 1,000+ pages.</p>
               </div>
               <div className="flex md:justify-end">
                 <Button asChild size="lg" variant="secondary" className="font-semibold">
