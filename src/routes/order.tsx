@@ -184,7 +184,7 @@ function OrderPage() {
           <div className="mt-8 grid lg:grid-cols-[1fr_360px] gap-8 items-start">
             <div className="rounded-2xl border border-border bg-card p-6 md:p-8 shadow-[var(--shadow-card)]">
               {step === 0 && <StepUpload file={file} setFile={setFile} setConfig={setConfig} />}
-              {step === 1 && <StepConfigure config={config} setConfig={setConfig} />}
+              {step === 1 && <StepConfigure config={config} setConfig={setConfig} pricing={pricing} />}
               {step === 2 && <StepReview file={file} config={config} pricing={pricing} />}
               {step === 3 && <StepCheckout customer={customer} setCustomer={setCustomer} delivery={config.delivery} setDelivery={(d) => setConfig((c) => ({ ...c, delivery: d, zone: d === "delivery" ? c.zone : undefined }))} zone={config.zone} setZone={(z) => setConfig((c) => ({ ...c, zone: z }))} zones={activeZones} />}
 
