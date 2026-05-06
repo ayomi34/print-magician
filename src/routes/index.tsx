@@ -20,7 +20,8 @@ export const Route = createFileRoute("/")({
 });
 
 function HomePage() {
-  const { site } = useSettings();
+  const { site, pricing } = useSettings();
+  const bulkPrice = Math.min(pricing.baseBW, 20);
   return (
     <div className="min-h-screen flex flex-col">
       <SiteHeader />
@@ -67,7 +68,7 @@ function HomePage() {
               />
               <div className="absolute -bottom-5 -left-5 hidden md:block bg-card text-card-foreground rounded-xl shadow-[var(--shadow-elegant)] p-4 ring-1 ring-border">
                 <div className="text-xs text-muted-foreground">Bulk price from</div>
-                <div className="text-2xl font-bold">₦20<span className="text-sm font-normal text-muted-foreground">/page</span></div>
+                <div className="text-2xl font-bold">₦{bulkPrice}<span className="text-sm font-normal text-muted-foreground">/page</span></div>
               </div>
             </div>
           </div>
@@ -110,7 +111,7 @@ function HomePage() {
             <div className="relative grid md:grid-cols-3 gap-8 items-center">
               <div className="md:col-span-2">
                 <h2 className="text-3xl md:text-4xl font-bold">Transparent bulk pricing</h2>
-                <p className="mt-3 text-white/85 max-w-xl">Pay less as you print more. From ₦30/page for B&W down to ₦20/page on orders of 1,000+ pages.</p>
+                <p className="mt-3 text-white/85 max-w-xl">Pay less as you print more. From ₦{pricing.baseBW}/page for B&W down to ₦{bulkPrice}/page on orders of 1,000+ pages.</p>
               </div>
               <div className="flex md:justify-end">
                 <Button asChild size="lg" variant="secondary" className="font-semibold">
