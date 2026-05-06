@@ -320,8 +320,12 @@ function StepUpload({ file, setFile, setConfig }: { file: UploadedFile | null; s
   );
 }
 
-function StepConfigure({ config, setConfig }: { config: PrintConfig; setConfig: React.Dispatch<React.SetStateAction<PrintConfig>>; }) {
+function StepConfigure({ config, setConfig, pricing }: { config: PrintConfig; setConfig: React.Dispatch<React.SetStateAction<PrintConfig>>; pricing: import("@/lib/settings").PricingSettings; }) {
   function update<K extends keyof PrintConfig>(k: K, v: PrintConfig[K]) { setConfig((c) => ({ ...c, [k]: v })); }
+  const ps = pricing.paperSurcharge;
+  const bf = pricing.bindingFlat;
+  const cf = pricing.coverFlat;
+  const fmt = (n: number) => "₦" + Math.round(n).toLocaleString("en-NG");
   return (
     <div className="space-y-6">
       <div>
@@ -341,8 +345,8 @@ function StepConfigure({ config, setConfig }: { config: PrintConfig; setConfig: 
       </div>
 
       <ChoiceGroup label="Color mode" value={config.color} onChange={(v) => update("color", v as ColorMode)} options={[
-        { value: "bw", label: "Black & White", hint: "₦30/page" },
-        { value: "color", label: "Full Color", hint: "₦100/page" },
+        { value: "bw", label: "Black & White", hint: `₦${pricing.baseBW}/page` },
+        { value: "color", label: "Full Color", hint: `₦${pricing.baseColor}/page` },
       ]} />
 
       <ChoiceGroup label="Printing type" value={config.sides} onChange={(v) => update("sides", v as SideMode)} options={[
@@ -370,9 +374,9 @@ function StepConfigure({ config, setConfig }: { config: PrintConfig; setConfig: 
             <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="plain">Plain</SelectItem>
-              <SelectItem value="matte">Matte (+₦15/sheet)</SelectItem>
-              <SelectItem value="glossy">Glossy (+₦25/sheet)</SelectItem>
-              <SelectItem value="cardstock">Cardstock (+₦40/sheet)</SelectItem>
+              <SelectItem value="matte">Matte (+{fmt(ps.matte)}/sheet)</SelectItem>
+              <SelectItem value="glossy">Glossy (+{fmt(ps.glossy)}/sheet)</SelectItem>
+              <SelectItem value="cardstock">Cardstock (+{fmt(ps.cardstock)}/sheet)</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -385,9 +389,9 @@ function StepConfigure({ config, setConfig }: { config: PrintConfig; setConfig: 
             <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="none">None</SelectItem>
-              <SelectItem value="stapled">Stapled (+₦100)</SelectItem>
-              <SelectItem value="spiral">Spiral (+₦800)</SelectItem>
-              <SelectItem value="hardcover">Hardcover (+₦3,500)</SelectItem>
+              <SelectItem value="stapled">Stapled (+{fmt(bf.stapled)})</SelectItem>
+              <SelectItem value="spiral">Spiral (+{fmt(bf.spiral)})</SelectItem>
+              <SelectItem value="hardcover">Hardcover (+{fmt(bf.hardcover)})</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -397,9 +401,9 @@ function StepConfigure({ config, setConfig }: { config: PrintConfig; setConfig: 
             <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="none">No cover</SelectItem>
-              <SelectItem value="transparent">Transparent (+₦200)</SelectItem>
-              <SelectItem value="card">Card cover (+₦500)</SelectItem>
-              <SelectItem value="custom">Custom upload (+₦1,000)</SelectItem>
+              <SelectItem value="transparent">Transparent (+{fmt(cf.transparent)})</SelectItem>
+              <SelectItem value="card">Card cover (+{fmt(cf.card)})</SelectItem>
+              <SelectItem value="custom">Custom upload (+{fmt(cf.custom)})</SelectItem>
             </SelectContent>
           </Select>
         </div>
