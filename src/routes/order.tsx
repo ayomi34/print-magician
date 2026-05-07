@@ -65,7 +65,7 @@ interface CustomerInfo {
 
 function OrderPage() {
   const [step, setStep] = useState(0);
-  const [file, setFile] = useState<UploadedFile | null>(null);
+  const [files, setFiles] = useState<UploadedFile[]>([]);
   const [submitting, setSubmitting] = useState(false);
 
   const [config, setConfig] = useState<PrintConfig>({
