@@ -77,14 +77,27 @@ export async function fetchOrders(): Promise<StoredOrder[]> {
   return (data as unknown as DbRow[]).map(rowToOrder);
 }
 
-export async function fetchOrder(id: string): Promise<StoredOrder | null> {
-  const { data, error } = await supabase
-    .from("orders")
-    .select("*")
-    .eq("id", id)
-    .maybeSingle();
+export interface PublicOrderStatus {
+  id: string;
+  status: OrderStatus;
+  total: number;
+  createdAt: number;
+}
+
+export async function fetchOrder(id: string): Promise<PublicOrderStatus | null> {
+  // Uses a SECURITY DEFINER RPC that only returns non-PII fields,
+  // so anonymous customers can track their own order without exposing other rows.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data, error } = await (supabase as any).rpc("track_order", { p_id: id });
   if (error) throw error;
-  return data ? rowToOrder(data as unknown as DbRow) : null;
+  const row = Array.isArray(data) ? data[0] : data;
+  if (!row) return null;
+  return {
+    id: row.id,
+    status: row.status as OrderStatus,
+    total: Number(row.total),
+    createdAt: new Date(row.created_at).getTime(),
+  };
 }
 
 export async function addOrder(order: StoredOrder): Promise<void> {

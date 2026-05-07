@@ -128,6 +128,15 @@ export type Database = {
         }
         Returns: boolean
       }
+      track_order: {
+        Args: { p_id: string }
+        Returns: {
+          created_at: string
+          id: string
+          status: string
+          total: number
+        }[]
+      }
     }
     Enums: {
       app_role: "admin" | "user"

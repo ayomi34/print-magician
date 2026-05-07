@@ -14,7 +14,7 @@ import {
   STATUS_LABELS,
   subscribeOrders,
   type OrderStatus,
-  type StoredOrder,
+  type PublicOrderStatus,
 } from "@/lib/orders";
 import { formatNaira } from "@/lib/pricing";
 
@@ -38,7 +38,7 @@ const STAGE_META: Record<OrderStatus, { icon: typeof Clock; desc: string }> = {
 
 function TrackPage() {
   const [orderId, setOrderId] = useState("");
-  const [order, setOrder] = useState<StoredOrder | null>(null);
+  const [order, setOrder] = useState<PublicOrderStatus | null>(null);
   const [loading, setLoading] = useState(false);
 
   // Realtime: when this specific order changes in the DB, refresh it.
@@ -129,7 +129,7 @@ function TrackPage() {
             {/* Progress bar based on real status */}
             <div className="mt-5">
               <div className="flex items-center justify-between text-xs text-muted-foreground mb-2">
-                <span>{isComplete ? "Completed" : `Current status: ${STATUS_LABELS[order.status]}`}</span>
+                <span>{isComplete ? "Completed" : `Current status: ${STATUS_LABELS[order.status as OrderStatus]}`}</span>
                 <span className="tabular-nums">{Math.round(overallProgress)}%</span>
               </div>
               <div className="h-2 w-full rounded-full bg-muted overflow-hidden">
