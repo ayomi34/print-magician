@@ -14,7 +14,7 @@ import {
   STATUS_LABELS,
   subscribeOrders,
   type OrderStatus,
-  type StoredOrder,
+  type PublicOrderStatus,
 } from "@/lib/orders";
 import { formatNaira } from "@/lib/pricing";
 
