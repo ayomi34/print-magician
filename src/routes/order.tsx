@@ -127,11 +127,15 @@ function OrderPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const totalPages = useMemo(() => files.reduce((sum, f) => sum + (f.pages ?? 0), 0), [files]);
+  const anyDetecting = files.some((f) => f.detecting);
+  const anyError = files.some((f) => !f.detecting && !f.pages);
+
   function next() {
     if (step === 0) {
-      if (!file) { toast.error("Please upload a file first"); return; }
-      if (file.detecting) { toast.error("Still detecting page count…"); return; }
-      if (!file.pages) { toast.error(file.countError || "Could not detect page count"); return; }
+      if (files.length === 0) { toast.error("Please upload at least one file"); return; }
+      if (anyDetecting) { toast.error("Still detecting page count…"); return; }
+      if (anyError) { toast.error("Some files have no detected page count. Remove them or wait."); return; }
     }
     if (step === 3) { return submitOrder(); }
     setStep((s) => Math.min(s + 1, STEPS.length - 1));
@@ -144,20 +148,29 @@ function OrderPage() {
     if (config.delivery === "delivery" && !config.zone) { toast.error("Please pick a delivery zone in Ibadan"); return; }
     setSubmitting(true);
     try {
+      const combinedName =
+        files.length === 0 ? "" :
+        files.length === 1 ? files[0].name :
+        `${files[0].name} (+${files.length - 1} more)`;
+      const combinedSize = files.reduce((s, f) => s + f.size, 0);
+
       // 1) Initialize Paystack transaction on the server
       const init = await initPayment({
         data: {
           config,
           customer,
-          fileName: file?.name ?? "",
-          fileSize: file?.size ?? 0,
+          fileName: combinedName,
+          fileSize: combinedSize,
         },
       });
 
-      // 2) Upload the file to storage (best-effort) using the orderId from init
-      if (file?.raw) {
-        try { await uploadPrintFile(init.orderId, file.raw); } catch (e) { console.error("Upload failed:", e); }
-      }
+      // 2) Upload all files to storage (best-effort) using the orderId from init
+      await Promise.all(
+        files.map(async (f) => {
+          if (!f.raw) return;
+          try { await uploadPrintFile(init.orderId, f.raw); } catch (e) { console.error("Upload failed:", e); }
+        }),
+      );
 
       // 3) Open Paystack checkout (redirect to authorization_url)
       // We use the authorization_url returned by Paystack for a hosted checkout
