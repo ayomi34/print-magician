@@ -129,7 +129,7 @@ function TrackPage() {
             {/* Progress bar based on real status */}
             <div className="mt-5">
               <div className="flex items-center justify-between text-xs text-muted-foreground mb-2">
-                <span>{isComplete ? "Completed" : `Current status: ${STATUS_LABELS[order.status]}`}</span>
+                <span>{isComplete ? "Completed" : `Current status: ${STATUS_LABELS[order.status as OrderStatus]}`}</span>
                 <span className="tabular-nums">{Math.round(overallProgress)}%</span>
               </div>
               <div className="h-2 w-full rounded-full bg-muted overflow-hidden">
