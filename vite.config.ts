@@ -11,7 +11,7 @@ export default isVercel
   ? (async () => {
       const { nitro } = await import("nitro/vite");
       return defineConfig({
-        plugins: [nitro({ config: { preset: "vercel" } }) as never],
+        plugins: [nitro({ preset: "vercel" } as never) as never],
       });
     })()
   : defineConfig({});
