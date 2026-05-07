@@ -9,10 +9,9 @@ const isVercel = process.env.VERCEL === "1" || process.env.VERCEL === "true";
 
 export default isVercel
   ? (async () => {
-      const nitroMod: { default: (opts: { preset: string }) => unknown } =
-        await import("nitro/vite");
+      const { nitro } = await import("nitro/vite");
       return defineConfig({
-        plugins: [nitroMod.default({ preset: "vercel" }) as never],
+        plugins: [nitro({ config: { preset: "vercel" } }) as never],
       });
     })()
   : defineConfig({});
