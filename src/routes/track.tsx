@@ -38,7 +38,7 @@ const STAGE_META: Record<OrderStatus, { icon: typeof Clock; desc: string }> = {
 
 function TrackPage() {
   const [orderId, setOrderId] = useState("");
-  const [order, setOrder] = useState<StoredOrder | null>(null);
+  const [order, setOrder] = useState<PublicOrderStatus | null>(null);
   const [loading, setLoading] = useState(false);
 
   // Realtime: when this specific order changes in the DB, refresh it.
