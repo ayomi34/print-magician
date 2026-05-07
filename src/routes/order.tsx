@@ -490,10 +490,14 @@ function ChoiceGroup({ label, value, onChange, options }: { label: string; value
   );
 }
 
-function StepReview({ file, config, pricing }: { file: UploadedFile | null; config: PrintConfig; pricing: import("@/lib/settings").PricingSettings }) {
+function StepReview({ files, config, pricing }: { files: UploadedFile[]; config: PrintConfig; pricing: import("@/lib/settings").PricingSettings }) {
   const b = calculatePrice(config, pricing);
+  const fileLabel =
+    files.length === 0 ? "—" :
+    files.length === 1 ? files[0].name :
+    `${files.length} files (${files.map((f) => f.name).join(", ").slice(0, 80)}${files.map((f) => f.name).join(", ").length > 80 ? "…" : ""})`;
   const rows: [string, string][] = [
-    ["File", file?.name ?? "—"],
+    ["Files", fileLabel],
     ["Pages × Copies", `${config.pages} × ${config.copies}`],
     ["Color", config.color === "bw" ? "Black & White" : "Full Color"],
     ["Sides", config.sides === "single" ? "Single-sided" : "Double-sided"],
