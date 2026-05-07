@@ -8,7 +8,7 @@ export function SiteFooter() {
       <div className="container mx-auto px-4 py-12 grid gap-8 md:grid-cols-4">
         <div>
           <div className="flex items-center gap-2 mb-3">
-            <img src={logo} alt="PrintSmart logo" className="h-14 w-auto" />
+            <img src={logo} alt="PrintSmart logo" className="h-20 w-auto" />
           </div>
           <p className="text-sm text-muted-foreground max-w-xs">
             Professional web-to-print platform. Upload, configure, and we deliver.
