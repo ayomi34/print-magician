@@ -12,7 +12,7 @@ import { toast } from "sonner";
 
 export const Route = createFileRoute("/reset-password")({
   head: () => ({
-    meta: [{ title: "Reset password — PrintFlow" }, { name: "robots", content: "noindex" }],
+    meta: [{ title: "Reset password — PrintSmart" }, { name: "robots", content: "noindex" }],
   }),
   component: ResetPasswordPage,
 });

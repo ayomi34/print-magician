@@ -33,9 +33,9 @@ import { toast } from "sonner";
 export const Route = createFileRoute("/order")({
   head: () => ({
     meta: [
-      { title: "Place an Order — PrintFlow" },
+      { title: "Place an Order — PrintSmart" },
       { name: "description", content: "Upload your file, configure print options, and check out securely." },
-      { property: "og:title", content: "Place an Order — PrintFlow" },
+      { property: "og:title", content: "Place an Order — PrintSmart" },
       { property: "og:description", content: "Upload, configure and pay in minutes." },
     ],
   }),

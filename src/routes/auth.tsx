@@ -14,7 +14,7 @@ import { toast } from "sonner";
 export const Route = createFileRoute("/auth")({
   head: () => ({
     meta: [
-      { title: "Sign in — PrintFlow" },
+      { title: "Sign in — PrintSmart" },
       { name: "description", content: "Sign in or create an account to manage orders." },
       { name: "robots", content: "noindex, nofollow" },
     ],

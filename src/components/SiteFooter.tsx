@@ -14,7 +14,7 @@ export function SiteFooter() {
             >
               <Printer className="h-4 w-4" />
             </span>
-            <span className="font-bold">PrintFlow</span>
+            <span className="font-bold">PrintSmart</span>
           </div>
           <p className="text-sm text-muted-foreground max-w-xs">
             Professional web-to-print platform. Upload, configure, and we deliver.
@@ -46,7 +46,7 @@ export function SiteFooter() {
         </div>
       </div>
       <div className="border-t border-border/60 py-6 text-center text-xs text-muted-foreground">
-        © {new Date().getFullYear()} PrintFlow. All rights reserved.
+        © {new Date().getFullYear()} PrintSmart. All rights reserved.
       </div>
     </footer>
   );

@@ -21,8 +21,8 @@ import { formatNaira } from "@/lib/pricing";
 export const Route = createFileRoute("/track")({
   head: () => ({
     meta: [
-      { title: "Track Order — PrintFlow" },
-      { name: "description", content: "Track your PrintFlow order using your Order ID." },
+      { title: "Track Order — PrintSmart" },
+      { name: "description", content: "Track your PrintSmart order using your Order ID." },
     ],
   }),
   component: TrackPage,
@@ -33,7 +33,7 @@ const STAGE_META: Record<OrderStatus, { icon: typeof Clock; desc: string }> = {
   processing: { icon: Package, desc: "Our team is preparing your file." },
   printing: { icon: PrinterIcon, desc: "Your job is on the press." },
   ready: { icon: Truck, desc: "Packed and on the way / ready for pickup." },
-  completed: { icon: CheckCircle2, desc: "Delivered. Thanks for choosing PrintFlow!" },
+  completed: { icon: CheckCircle2, desc: "Delivered. Thanks for choosing PrintSmart!" },
 };
 
 function TrackPage() {

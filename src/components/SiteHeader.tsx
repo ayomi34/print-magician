@@ -22,7 +22,7 @@ export function SiteHeader() {
           >
             <Printer className="h-5 w-5" />
           </span>
-          <span className="font-bold text-lg tracking-tight">PrintFlow</span>
+          <span className="font-bold text-lg tracking-tight">PrintSmart</span>
         </Link>
         <nav className="hidden md:flex items-center gap-7 text-sm font-medium text-muted-foreground">
           <Link to="/" className="hover:text-foreground transition-colors" activeOptions={{ exact: true }} activeProps={{ className: "text-foreground" }}>
