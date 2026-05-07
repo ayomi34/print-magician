@@ -585,12 +585,16 @@ function StepCheckout({ customer, setCustomer, delivery, setDelivery, zone, setZ
   );
 }
 
-function SummaryCard({ config, file, pricing }: { config: PrintConfig; file: UploadedFile | null; pricing: import("@/lib/settings").PricingSettings }) {
+function SummaryCard({ config, files, pricing }: { config: PrintConfig; files: UploadedFile[]; pricing: import("@/lib/settings").PricingSettings }) {
   const b = calculatePrice(config, pricing);
+  const label =
+    files.length === 0 ? null :
+    files.length === 1 ? files[0].name :
+    `${files.length} files`;
   return (
     <aside className="lg:sticky lg:top-24 rounded-2xl border border-border bg-card p-6 shadow-[var(--shadow-card)]">
       <h3 className="font-semibold">Order summary</h3>
-      {file && <p className="mt-1 text-xs text-muted-foreground truncate">{file.name}</p>}
+      {label && <p className="mt-1 text-xs text-muted-foreground truncate">{label}</p>}
       <Separator className="my-4" />
       <dl className="space-y-2 text-sm">
         <Row label={`${config.pages} pages × ${config.copies} ${config.copies === 1 ? "copy" : "copies"}`} value={formatNaira(b.pagesTotal)} />
