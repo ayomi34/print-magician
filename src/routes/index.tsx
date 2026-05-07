@@ -10,9 +10,9 @@ import heroImg from "@/assets/hero-print.jpg";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "PrintFlow — Web-to-Print Platform | Upload, Configure, Deliver" },
+      { title: "PrintSmart — Web-to-Print Platform | Upload, Configure, Deliver" },
       { name: "description", content: "Upload documents, choose options, pay securely with Paystack. Fast printing & delivery across Nigeria. From ₦20/page in bulk." },
-      { property: "og:title", content: "PrintFlow — Professional Web-to-Print" },
+      { property: "og:title", content: "PrintSmart — Professional Web-to-Print" },
       { property: "og:description", content: "Upload, configure and order prints in minutes. Paystack & Flutterwave supported." },
     ],
   }),

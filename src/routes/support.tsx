@@ -8,8 +8,8 @@ import { EMAIL, PHONE_DISPLAY, PHONE_TEL, WHATSAPP_URL } from "@/lib/contact";
 export const Route = createFileRoute("/support")({
   head: () => ({
     meta: [
-      { title: "Support — PrintFlow" },
-      { name: "description", content: "Reach the PrintFlow team via WhatsApp, email or phone." },
+      { title: "Support — PrintSmart" },
+      { name: "description", content: "Reach the PrintSmart team via WhatsApp, email or phone." },
     ],
   }),
   component: SupportPage,

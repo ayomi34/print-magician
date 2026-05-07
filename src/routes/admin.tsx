@@ -65,7 +65,7 @@ import { Loader2, ShieldAlert } from "lucide-react";
 export const Route = createFileRoute("/admin")({
   head: () => ({
     meta: [
-      { title: "Admin Dashboard — PrintFlow" },
+      { title: "Admin Dashboard — PrintSmart" },
       { name: "description", content: "Manage orders, update status, and view revenue analytics." },
       { name: "robots", content: "noindex, nofollow" },
     ],

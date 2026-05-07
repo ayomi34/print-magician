@@ -1,6 +1,6 @@
-import { Printer } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { EMAIL, PHONE_DISPLAY, PHONE_TEL, WHATSAPP_URL } from "@/lib/contact";
+import logo from "@/assets/logo.png";
 
 export function SiteFooter() {
   return (
@@ -8,13 +8,7 @@ export function SiteFooter() {
       <div className="container mx-auto px-4 py-12 grid gap-8 md:grid-cols-4">
         <div>
           <div className="flex items-center gap-2 mb-3">
-            <span
-              className="flex h-8 w-8 items-center justify-center rounded-md text-primary-foreground"
-              style={{ background: "var(--gradient-primary)" }}
-            >
-              <Printer className="h-4 w-4" />
-            </span>
-            <span className="font-bold">PrintFlow</span>
+            <img src={logo} alt="PrintSmart logo" className="h-8 w-auto" />
           </div>
           <p className="text-sm text-muted-foreground max-w-xs">
             Professional web-to-print platform. Upload, configure, and we deliver.
@@ -46,7 +40,7 @@ export function SiteFooter() {
         </div>
       </div>
       <div className="border-t border-border/60 py-6 text-center text-xs text-muted-foreground">
-        © {new Date().getFullYear()} PrintFlow. All rights reserved.
+        © {new Date().getFullYear()} PrintSmart. All rights reserved.
       </div>
     </footer>
   );
