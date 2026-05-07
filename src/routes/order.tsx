@@ -254,81 +254,124 @@ function Stepper({ step }: { step: number }) {
   );
 }
 
-function StepUpload({ file, setFile, setConfig }: { file: UploadedFile | null; setFile: (f: UploadedFile | null) => void; setConfig: React.Dispatch<React.SetStateAction<PrintConfig>>; }) {
+function StepUpload({ files, setFiles, setConfig, totalPages }: { files: UploadedFile[]; setFiles: React.Dispatch<React.SetStateAction<UploadedFile[]>>; setConfig: React.Dispatch<React.SetStateAction<PrintConfig>>; totalPages: number; }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [dragOver, setDragOver] = useState(false);
 
-  async function handleFiles(files: FileList | null) {
-    const f = files?.[0]; if (!f) return;
+  async function handleFiles(list: FileList | null) {
+    if (!list || list.length === 0) return;
     const allowed = ["application/pdf", "image/png", "image/jpeg", "application/vnd.openxmlformats-officedocument.wordprocessingml.document", "application/msword"];
-    if (!allowed.includes(f.type) && !f.name.match(/\.(pdf|docx?|png|jpe?g)$/i)) { toast.error("Only PDF, DOCX, PNG, or JPG files are supported"); return; }
-    if (f.size > 50 * 1024 * 1024) { toast.error("Max 50MB"); return; }
-    const previewUrl = f.type.startsWith("image/") || f.type === "application/pdf" ? URL.createObjectURL(f) : undefined;
-
-    // Show file immediately with detecting state
-    setFile({ name: f.name, size: f.size, type: f.type, previewUrl, pages: null, detecting: true, raw: f });
-
-    const result = await countPages(f);
-    if (result.ok) {
-      setFile({ name: f.name, size: f.size, type: f.type, previewUrl, pages: result.pages, detecting: false, countMethod: result.method, raw: f });
-      setConfig((c) => ({ ...c, pages: result.pages }));
-      toast.success(`Detected ${result.pages} page${result.pages > 1 ? "s" : ""}`);
-    } else {
-      setFile({ name: f.name, size: f.size, type: f.type, previewUrl, pages: null, detecting: false, countError: result.reason, raw: f });
-      toast.error(result.reason);
+    const accepted: File[] = [];
+    for (const f of Array.from(list)) {
+      if (!allowed.includes(f.type) && !f.name.match(/\.(pdf|docx?|png|jpe?g)$/i)) {
+        toast.error(`${f.name}: unsupported type`);
+        continue;
+      }
+      if (f.size > 50 * 1024 * 1024) {
+        toast.error(`${f.name}: exceeds 50MB`);
+        continue;
+      }
+      accepted.push(f);
     }
+    if (accepted.length === 0) return;
+
+    // Add all in detecting state
+    const placeholders: UploadedFile[] = accepted.map((f) => ({
+      name: f.name,
+      size: f.size,
+      type: f.type,
+      previewUrl: f.type.startsWith("image/") || f.type === "application/pdf" ? URL.createObjectURL(f) : undefined,
+      pages: null,
+      detecting: true,
+      raw: f,
+    }));
+    setFiles((prev) => [...prev, ...placeholders]);
+
+    // Detect each file's pages and update by name+size match
+    await Promise.all(
+      accepted.map(async (f) => {
+        const result = await countPages(f);
+        setFiles((prev) =>
+          prev.map((entry) => {
+            if (entry.raw !== f) return entry;
+            return result.ok
+              ? { ...entry, pages: result.pages, detecting: false, countMethod: result.method }
+              : { ...entry, pages: null, detecting: false, countError: result.reason };
+          }),
+        );
+      }),
+    );
+  }
+
+  // Sync detected total pages into the print config (sum of all files)
+  useEffect(() => {
+    if (totalPages > 0) {
+      setConfig((c) => (c.pages === totalPages ? c : { ...c, pages: totalPages }));
+    }
+  }, [totalPages, setConfig]);
+
+  function removeAt(idx: number) {
+    setFiles((prev) => prev.filter((_, i) => i !== idx));
   }
 
   return (
     <div>
-      <h2 className="text-xl font-bold">Upload your file</h2>
-      <p className="text-sm text-muted-foreground mt-1">PDF, DOCX, PNG or JPG up to 50MB.</p>
+      <h2 className="text-xl font-bold">Upload your files</h2>
+      <p className="text-sm text-muted-foreground mt-1">PDF, DOCX, PNG or JPG up to 50MB each. You can select multiple files at once.</p>
 
-      {!file ? (
-        <button
-          type="button"
-          onClick={() => inputRef.current?.click()}
-          onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
-          onDragLeave={() => setDragOver(false)}
-          onDrop={(e) => { e.preventDefault(); setDragOver(false); handleFiles(e.dataTransfer.files); }}
-          className={["mt-6 w-full rounded-2xl border-2 border-dashed p-10 text-center transition", dragOver ? "border-primary bg-primary/5" : "border-border hover:border-primary/50 hover:bg-secondary/40"].join(" ")}
-        >
-          <div className="mx-auto h-14 w-14 rounded-xl grid place-items-center text-primary-foreground" style={{ background: "var(--gradient-primary)" }}>
-            <UploadIcon className="h-6 w-6" />
-          </div>
-          <div className="mt-4 font-semibold">Drag & drop or click to upload</div>
-          <div className="mt-1 text-xs text-muted-foreground">PDF, DOCX, PNG, JPG · Max 50MB</div>
-        </button>
-      ) : (
-        <div className="mt-6 rounded-2xl border border-border p-4 flex gap-4 items-center">
-          <div className="h-20 w-20 rounded-lg overflow-hidden bg-muted grid place-items-center shrink-0">
-            {file.previewUrl && file.type.startsWith("image/") ? (
-              <img src={file.previewUrl} alt={file.name} className="h-full w-full object-cover" />
-            ) : (
-              <FileText className="h-8 w-8 text-muted-foreground" />
-            )}
-          </div>
-          <div className="min-w-0 flex-1">
-            <div className="font-medium truncate">{file.name}</div>
-            <div className="text-xs text-muted-foreground mt-1 flex items-center gap-2">
-              <span>{(file.size / 1024 / 1024).toFixed(2)} MB</span>
-              <span>·</span>
-              {file.detecting ? (
-                <span className="inline-flex items-center gap-1 text-primary"><Loader2 className="h-3 w-3 animate-spin" /> Detecting pages…</span>
-              ) : file.pages ? (
-                <span><strong className="text-foreground">{file.pages}</strong> page{file.pages > 1 ? "s" : ""} detected{file.countMethod === "pdf" ? " (exact)" : ""}</span>
-              ) : (
-                <span className="text-destructive">{file.countError}</span>
-              )}
+      <button
+        type="button"
+        onClick={() => inputRef.current?.click()}
+        onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+        onDragLeave={() => setDragOver(false)}
+        onDrop={(e) => { e.preventDefault(); setDragOver(false); handleFiles(e.dataTransfer.files); }}
+        className={["mt-6 w-full rounded-2xl border-2 border-dashed p-8 text-center transition", dragOver ? "border-primary bg-primary/5" : "border-border hover:border-primary/50 hover:bg-secondary/40"].join(" ")}
+      >
+        <div className="mx-auto h-14 w-14 rounded-xl grid place-items-center text-primary-foreground" style={{ background: "var(--gradient-primary)" }}>
+          <UploadIcon className="h-6 w-6" />
+        </div>
+        <div className="mt-4 font-semibold">{files.length === 0 ? "Drag & drop or click to upload" : "Add more files"}</div>
+        <div className="mt-1 text-xs text-muted-foreground">PDF, DOCX, PNG, JPG · Multiple files allowed · Max 50MB each</div>
+      </button>
+
+      {files.length > 0 && (
+        <div className="mt-4 space-y-3">
+          {files.map((file, idx) => (
+            <div key={idx} className="rounded-xl border border-border p-3 flex gap-3 items-center">
+              <div className="h-14 w-14 rounded-lg overflow-hidden bg-muted grid place-items-center shrink-0">
+                {file.previewUrl && file.type.startsWith("image/") ? (
+                  <img src={file.previewUrl} alt={file.name} className="h-full w-full object-cover" />
+                ) : (
+                  <FileText className="h-6 w-6 text-muted-foreground" />
+                )}
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="font-medium truncate text-sm">{file.name}</div>
+                <div className="text-xs text-muted-foreground mt-1 flex items-center gap-2 flex-wrap">
+                  <span>{(file.size / 1024 / 1024).toFixed(2)} MB</span>
+                  <span>·</span>
+                  {file.detecting ? (
+                    <span className="inline-flex items-center gap-1 text-primary"><Loader2 className="h-3 w-3 animate-spin" /> Detecting…</span>
+                  ) : file.pages ? (
+                    <span><strong className="text-foreground">{file.pages}</strong> page{file.pages > 1 ? "s" : ""}{file.countMethod === "pdf" ? " (exact)" : ""}</span>
+                  ) : (
+                    <span className="text-destructive">{file.countError}</span>
+                  )}
+                </div>
+              </div>
+              <Button variant="ghost" size="icon" onClick={() => removeAt(idx)} aria-label="Remove file">
+                <X className="h-4 w-4" />
+              </Button>
             </div>
+          ))}
+          <div className="flex justify-between rounded-xl bg-secondary/60 px-4 py-3 text-sm">
+            <span className="text-muted-foreground">{files.length} file{files.length > 1 ? "s" : ""}</span>
+            <span className="font-medium">{totalPages} page{totalPages === 1 ? "" : "s"} total</span>
           </div>
-          <Button variant="ghost" size="icon" onClick={() => setFile(null)} aria-label="Remove file">
-            <X className="h-4 w-4" />
-          </Button>
         </div>
       )}
 
-      <input ref={inputRef} type="file" hidden accept=".pdf,.doc,.docx,.png,.jpg,.jpeg,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,image/png,image/jpeg" onChange={(e) => handleFiles(e.target.files)} />
+      <input ref={inputRef} type="file" hidden multiple accept=".pdf,.doc,.docx,.png,.jpg,.jpeg,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,image/png,image/jpeg" onChange={(e) => handleFiles(e.target.files)} />
     </div>
   );
 }
