@@ -52,16 +52,20 @@ function TrackPage() {
   }, [order?.id]);
 
   async function lookup() {
-    const id = orderId.trim().toUpperCase();
-    if (!id.startsWith("PF-") || id.length < 6) {
-      toast.error("Enter a valid Order ID (e.g. PF-XXXXXX)");
+    const raw = orderId.trim();
+    const isOrderId = raw.toUpperCase().startsWith("PF-");
+    const digits = raw.replace(/\D/g, "");
+    const isPhone = !isOrderId && digits.length >= 7;
+    if (!isOrderId && !isPhone) {
+      toast.error("Enter an Order ID (PF-XXXXXX) or your phone number");
       return;
     }
+    const query = isOrderId ? raw.toUpperCase() : digits;
     setLoading(true);
     try {
-      const found = await fetchOrder(id);
+      const found = await fetchOrder(query);
       if (!found) {
-        toast.error("Order not found. Double-check your ID.");
+        toast.error("Order not found. Double-check your ID or phone.");
         setOrder(null);
       } else {
         setOrder(found);
@@ -89,16 +93,16 @@ function TrackPage() {
       <main className="flex-1 container mx-auto px-4 py-12 max-w-2xl">
         <h1 className="text-3xl md:text-4xl font-bold tracking-tight">Track your order</h1>
         <p className="text-muted-foreground mt-2">
-          Enter the Order ID we sent you (starts with <code className="font-mono">PF-</code>). Status updates in real time as our team works on your job.
+          Enter the Order ID we sent you (starts with <code className="font-mono">PF-</code>) or the phone number you used to place the order. Status updates in real time as our team works on your job.
         </p>
 
         <div className="mt-8 rounded-2xl border border-border bg-card p-6 shadow-[var(--shadow-card)]">
           <div className="grid sm:grid-cols-[1fr_auto] gap-3 items-end">
             <div className="space-y-2">
-              <Label htmlFor="oid">Order ID</Label>
+              <Label htmlFor="oid">Order ID or phone number</Label>
               <Input
                 id="oid"
-                placeholder="PF-XXXXXX"
+                placeholder="PF-XXXXXX or 080..."
                 value={orderId}
                 onChange={(e) => setOrderId(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && lookup()}
