@@ -88,6 +88,7 @@ export const initPayment = createServerFn({ method: "POST" })
         amount: amountKobo,
         currency: "NGN",
         reference,
+        callback_url: data.callbackUrl,
         metadata: {
           orderId,
           customer: data.customer,
