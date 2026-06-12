@@ -93,7 +93,7 @@ function TrackPage() {
       <main className="flex-1 container mx-auto px-4 py-12 max-w-2xl">
         <h1 className="text-3xl md:text-4xl font-bold tracking-tight">Track your order</h1>
         <p className="text-muted-foreground mt-2">
-          Enter the Order ID we sent you (starts with <code className="font-mono">PF-</code>). Status updates in real time as our team works on your job.
+          Enter the Order ID we sent you (starts with <code className="font-mono">PF-</code>) or the phone number you used to place the order. Status updates in real time as our team works on your job.
         </p>
 
         <div className="mt-8 rounded-2xl border border-border bg-card p-6 shadow-[var(--shadow-card)]">
