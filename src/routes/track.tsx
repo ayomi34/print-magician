@@ -99,10 +99,10 @@ function TrackPage() {
         <div className="mt-8 rounded-2xl border border-border bg-card p-6 shadow-[var(--shadow-card)]">
           <div className="grid sm:grid-cols-[1fr_auto] gap-3 items-end">
             <div className="space-y-2">
-              <Label htmlFor="oid">Order ID</Label>
+              <Label htmlFor="oid">Order ID or phone number</Label>
               <Input
                 id="oid"
-                placeholder="PF-XXXXXX"
+                placeholder="PF-XXXXXX or 080..."
                 value={orderId}
                 onChange={(e) => setOrderId(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && lookup()}
