@@ -155,12 +155,14 @@ function OrderPage() {
       const combinedSize = files.reduce((s, f) => s + f.size, 0);
 
       // 1) Initialize Paystack transaction on the server
+      const verifyUrl = `${window.location.origin}/order`;
       const init = await initPayment({
         data: {
           config,
           customer,
           fileName: combinedName,
           fileSize: combinedSize,
+          callbackUrl: verifyUrl,
         },
       });
 
@@ -172,10 +174,8 @@ function OrderPage() {
         }),
       );
 
-      // 3) Open Paystack checkout (redirect to authorization_url)
-      // We use the authorization_url returned by Paystack for a hosted checkout
-      // — works on all browsers, no inline script needed.
-      const verifyUrl = `${window.location.origin}/order?reference=${encodeURIComponent(init.reference)}`;
+      // 3) Redirect to Paystack hosted checkout. Paystack will redirect back
+      // to callback_url with ?reference=... where our useEffect verifies & saves.
       sessionStorage.setItem("printflow:pendingRef", init.reference);
       sessionStorage.setItem("printflow:returnTo", verifyUrl);
       window.location.href = init.authorizationUrl;
