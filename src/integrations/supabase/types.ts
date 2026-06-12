@@ -128,6 +128,24 @@ export type Database = {
         }
         Returns: boolean
       }
+      save_paid_order: {
+        Args: {
+          p_config: Json
+          p_customer_email: string
+          p_customer_name: string
+          p_customer_notes: string
+          p_customer_phone: string
+          p_file_name: string
+          p_file_size: number
+          p_id: string
+          p_payment_reference: string
+          p_total: number
+        }
+        Returns: {
+          already_saved: boolean
+          id: string
+        }[]
+      }
       track_order: {
         Args: { p_id: string }
         Returns: {
