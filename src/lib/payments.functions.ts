@@ -2,7 +2,23 @@
 // Order is only inserted into the database AFTER payment is verified.
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { createClient } from "@supabase/supabase-js";
+import type { Database } from "@/integrations/supabase/types";
+
+function getSupabase() {
+  const url = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+  const key =
+    process.env.SUPABASE_PUBLISHABLE_KEY ||
+    process.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+  if (!url || !key) {
+    throw new Error(
+      "Missing Supabase env vars. Set SUPABASE_URL and SUPABASE_PUBLISHABLE_KEY (or VITE_ prefixed)."
+    );
+  }
+  return createClient<Database>(url, key, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+}
 import type { PrintConfig } from "@/lib/pricing";
 import { calculatePrice } from "@/lib/pricing";
 import { loadPricingServer } from "@/lib/settings.server";
@@ -105,15 +121,7 @@ const VerifyInput = z.object({
 export const verifyAndSaveOrder = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => VerifyInput.parse(input))
   .handler(async ({ data }) => {
-    // Idempotency: if order with this reference already saved, return it
-    const { data: existing } = await supabaseAdmin
-      .from("orders")
-      .select("id, status, payment_status")
-      .eq("payment_reference", data.reference)
-      .maybeSingle();
-    if (existing) {
-      return { ok: true, orderId: existing.id, alreadySaved: true };
-    }
+    const supabase = getSupabase();
 
     const res = await fetch(
       `${PAYSTACK_BASE}/transaction/verify/${encodeURIComponent(data.reference)}`,
@@ -137,7 +145,6 @@ export const verifyAndSaveOrder = createServerFn({ method: "POST" })
     const customer = CustomerSchema.parse(meta.customer);
     const orderId = String(meta.orderId || `PF-${Date.now().toString(36).toUpperCase()}`);
 
-    // Re-compute price server-side; reject if Paystack amount doesn't match.
     const pricing = await loadPricingServer();
     const breakdown = calculatePrice(config as PrintConfig, pricing);
     const expectedKobo = Math.round(breakdown.total * 100);
@@ -146,26 +153,27 @@ export const verifyAndSaveOrder = createServerFn({ method: "POST" })
       throw new Error("Payment amount mismatch — please contact support");
     }
 
-    const insertPayload = {
-      id: orderId,
-      status: "pending",
-      customer_name: customer.name,
-      customer_phone: customer.phone,
-      customer_email: customer.email || null,
-      customer_notes: customer.notes || null,
-      config: config as unknown as Record<string, unknown>,
-      file_name: meta.fileName || null,
-      file_size: meta.fileSize ?? 0,
-      total: breakdown.total,
-      payment_reference: data.reference,
-      payment_status: "paid",
-    };
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { error } = await supabaseAdmin.from("orders").insert(insertPayload as any);
+    const { data: saved, error } = await (supabase as any).rpc("save_paid_order", {
+      p_id: orderId,
+      p_customer_name: customer.name,
+      p_customer_phone: customer.phone,
+      p_customer_email: customer.email || null,
+      p_customer_notes: customer.notes || null,
+      p_config: config,
+      p_file_name: meta.fileName || null,
+      p_file_size: meta.fileSize ?? 0,
+      p_total: breakdown.total,
+      p_payment_reference: data.reference,
+    });
     if (error) {
-      console.error("Order insert failed:", error);
+      console.error("Order save failed:", error);
       throw new Error("Could not save order");
     }
-
-    return { ok: true, orderId, alreadySaved: false };
+    const row = Array.isArray(saved) ? saved[0] : saved;
+    return {
+      ok: true,
+      orderId: row?.id ?? orderId,
+      alreadySaved: Boolean(row?.already_saved),
+    };
   });
