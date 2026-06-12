@@ -52,16 +52,20 @@ function TrackPage() {
   }, [order?.id]);
 
   async function lookup() {
-    const id = orderId.trim().toUpperCase();
-    if (!id.startsWith("PF-") || id.length < 6) {
-      toast.error("Enter a valid Order ID (e.g. PF-XXXXXX)");
+    const raw = orderId.trim();
+    const isOrderId = raw.toUpperCase().startsWith("PF-");
+    const digits = raw.replace(/\D/g, "");
+    const isPhone = !isOrderId && digits.length >= 7;
+    if (!isOrderId && !isPhone) {
+      toast.error("Enter an Order ID (PF-XXXXXX) or your phone number");
       return;
     }
+    const query = isOrderId ? raw.toUpperCase() : digits;
     setLoading(true);
     try {
-      const found = await fetchOrder(id);
+      const found = await fetchOrder(query);
       if (!found) {
-        toast.error("Order not found. Double-check your ID.");
+        toast.error("Order not found. Double-check your ID or phone.");
         setOrder(null);
       } else {
         setOrder(found);
