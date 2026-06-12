@@ -56,6 +56,7 @@ const InitInput = z.object({
   customer: CustomerSchema,
   fileName: z.string().max(255).optional().default(""),
   fileSize: z.number().int().min(0).optional().default(0),
+  callbackUrl: z.string().url().max(500).optional(),
 });
 
 function genOrderId(): string {
@@ -87,6 +88,7 @@ export const initPayment = createServerFn({ method: "POST" })
         amount: amountKobo,
         currency: "NGN",
         reference,
+        callback_url: data.callbackUrl,
         metadata: {
           orderId,
           customer: data.customer,
